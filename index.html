@@ -801,9 +801,9 @@
                              </div>
                              <span class="text-gray-400 font-bold text-[10px] hidden md:inline">或</span>
                              <div class="flex items-center gap-2 w-full md:w-auto bg-white border border-gray-200 rounded px-2 py-1">
-                                <span class="text-[10px] text-gray-500 font-bold shrink-0">本機上傳:</span>
-                                <input type="file" accept="image/*" @change="handleImageUpload($event, item)" class="text-[10px] text-gray-600 w-full md:w-32 cursor-pointer shrink-0">
-                             </div>
+                            <span class="text-[10px] text-gray-500 font-bold shrink-0">本機上傳:</span>
+                            <input type="file" accept="image/*" multiple @change="handleImageUpload($event, item)" class="text-[10px] text-gray-600 w-full md:w-32 cursor-pointer shrink-0">
+                         </div>
                            </div>
                         </div>
                     </div>
@@ -970,7 +970,7 @@
                      <span class="text-gray-400 font-bold text-[10px] hidden md:inline">或</span>
                      <div class="flex items-center gap-2 w-full md:w-auto bg-gray-50 border border-gray-200 rounded px-2 py-1">
                         <span class="text-[10px] text-gray-500 font-bold shrink-0">本機上傳:</span>
-                        <input type="file" accept="image/*" @change="handleImageUpload($event, flight)" class="text-[10px] text-gray-600 w-full md:w-32 cursor-pointer shrink-0">
+                        <input type="file" accept="image/*" multiple @change="handleImageUpload($event, flight)" class="text-[10px] text-gray-600 w-full md:w-32 cursor-pointer shrink-0">
                      </div>
                    </div>
                  </div>
@@ -1305,7 +1305,7 @@
                          <span class="text-gray-400 font-bold text-[10px] hidden md:inline">或</span>
                          <div class="flex items-center gap-2 w-full md:w-auto bg-gray-50 border border-gray-200 rounded px-2 py-1">
                             <span class="text-[10px] text-gray-500 font-bold shrink-0">本機上傳:</span>
-                            <input type="file" accept="image/*" @change="handleImageUpload($event, trans)" class="text-[10px] text-gray-600 w-full md:w-32 cursor-pointer shrink-0">
+                            <input type="file" accept="image/*" multiple @change="handleImageUpload($event, trans)" class="text-[10px] text-gray-600 w-full md:w-32 cursor-pointer shrink-0">
                          </div>
                        </div>
                      </div>
@@ -1441,7 +1441,7 @@
                      <span class="text-gray-400 font-bold text-[10px] hidden md:inline">或</span>
                      <div class="flex items-center gap-2 w-full md:w-auto bg-gray-50 border border-gray-200 rounded px-2 py-1">
                         <span class="text-[10px] text-gray-500 font-bold shrink-0">本機上傳:</span>
-                        <input type="file" accept="image/*" @change="handleImageUpload($event, hotel)" class="text-[10px] text-gray-600 w-full md:w-32 cursor-pointer shrink-0">
+                        <input type="file" accept="image/*" multiple @change="handleImageUpload($event, hotel)" class="text-[10px] text-gray-600 w-full md:w-32 cursor-pointer shrink-0">
                      </div>
                    </div>
                  </div>
@@ -2561,11 +2561,14 @@
            reader.onload = (event) => {
                const img = new Image();
                img.onload = () => {
-                   const canvas = document.createElement('canvas'); const MAX_WIDTH = 1200;
-                   let scaleSize = 1; if (img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
-                   canvas.width = img.width * scaleSize; canvas.height = img.height * scaleSize;
+                   const canvas = document.createElement('canvas'); 
+                   let width = img.width; let height = img.height;
+                   const MAX_DIM = 1000;
+                   if (width > height) { if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; } } 
+                   else { if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; } }
+                   canvas.width = width; canvas.height = height;
                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                   setupData.value.coverImage = canvas.toDataURL('image/jpeg', 0.7);
+                   setupData.value.coverImage = canvas.toDataURL('image/webp', 0.7);
                }; img.src = event.target.result;
            }; reader.readAsDataURL(file);
            e.target.value = ''; 
@@ -2573,20 +2576,25 @@
 
         // 處理本機圖片上傳並轉為 DataURL 塞入相簿
         const handleImageUpload = (e, item) => {
-           const file = e.target.files[0]; if(!file) return;
-           const reader = new FileReader();
-           reader.onload = (event) => {
-               const img = new Image();
-               img.onload = () => {
-                   const canvas = document.createElement('canvas'); const MAX_WIDTH = 800;
-                   let scaleSize = 1; if (img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
-                   canvas.width = img.width * scaleSize; canvas.height = img.height * scaleSize;
-                   const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                   if (!item.images) item.images = [];
-                   item.images.push(canvas.toDataURL('image/jpeg', 0.7));
-               }; img.src = event.target.result;
-           }; reader.readAsDataURL(file);
-           e.target.value = ''; // 清除 input 確保下次選同一張圖也能觸發
+           const files = e.target.files; if(!files || files.length === 0) return;
+           Array.from(files).forEach(file => {
+               const reader = new FileReader();
+               reader.onload = (event) => {
+                   const img = new Image();
+                   img.onload = () => {
+                       const canvas = document.createElement('canvas');
+                       let width = img.width; let height = img.height;
+                       const MAX_DIM = 800;
+                       if (width > height) { if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; } } 
+                       else { if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; } }
+                       canvas.width = width; canvas.height = height;
+                       const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                       if (!item.images) item.images = [];
+                       item.images.push(canvas.toDataURL('image/webp', 0.6));
+                   }; img.src = event.target.result;
+               }; reader.readAsDataURL(file);
+           });
+           e.target.value = ''; // 清除 input 確保下次選同一批圖也能觸發
         };
 
         const moveToDay = (fromDayIdx, itemIdx, event) => {
