@@ -2554,47 +2554,59 @@
            recalculateDay(dayIdx);
         };
         
-        // 處理封面圖片上傳
-        const handleCoverUpload = (e) => {
+        // 處理封面圖片上傳 (串接 ImgBB API 破解容量限制)
+        const handleCoverUpload = async (e) => {
            const file = e.target.files[0]; if(!file) return;
-           const reader = new FileReader();
-           reader.onload = (event) => {
-               const img = new Image();
-               img.onload = () => {
-                   const canvas = document.createElement('canvas'); 
-                   let width = img.width; let height = img.height;
-                   const MAX_DIM = 1000;
-                   if (width > height) { if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; } } 
-                   else { if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; } }
-                   canvas.width = width; canvas.height = height;
-                   const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                   setupData.value.coverImage = canvas.toDataURL('image/webp', 0.7);
-               }; img.src = event.target.result;
-           }; reader.readAsDataURL(file);
+           saveStatus.value = '封面圖片上傳中... ⏳';
+           const formData = new FormData();
+           formData.append('image', file);
+           formData.append('key', '722bc54189bddc68e1f3a24d1c02d6de');
+           
+           try {
+               const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+               const data = await res.json();
+               if (data.success) {
+                   setupData.value.coverImage = data.data.url;
+                   saveStatus.value = '上傳成功 ✅';
+               } else {
+                   customAlert("封面圖上傳失敗：" + (data.error?.message || '未知錯誤'));
+                   saveStatus.value = '上傳失敗 ❌';
+               }
+           } catch (err) {
+               customAlert("上傳發生錯誤，請檢查網路連線。");
+               saveStatus.value = '上傳失敗 ❌';
+           }
            e.target.value = ''; 
+           setTimeout(() => { if(saveStatus.value.includes('上傳')) saveStatus.value = ''; }, 3000);
         };
 
-        // 處理本機圖片上傳並轉為 DataURL 塞入相簿
-        const handleImageUpload = (e, item) => {
+        // 處理各模組相簿本機圖片上傳 (串接 ImgBB API，支援多圖)
+        const handleImageUpload = async (e, item) => {
            const files = e.target.files; if(!files || files.length === 0) return;
-           Array.from(files).forEach(file => {
-               const reader = new FileReader();
-               reader.onload = (event) => {
-                   const img = new Image();
-                   img.onload = () => {
-                       const canvas = document.createElement('canvas');
-                       let width = img.width; let height = img.height;
-                       const MAX_DIM = 800;
-                       if (width > height) { if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; } } 
-                       else { if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; } }
-                       canvas.width = width; canvas.height = height;
-                       const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+           saveStatus.value = '照片上傳中... ⏳';
+           
+           for (const file of Array.from(files)) {
+               const formData = new FormData();
+               formData.append('image', file);
+               formData.append('key', '722bc54189bddc68e1f3a24d1c02d6de');
+               
+               try {
+                   const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+                   const data = await res.json();
+                   if (data.success) {
                        if (!item.images) item.images = [];
-                       item.images.push(canvas.toDataURL('image/webp', 0.6));
-                   }; img.src = event.target.result;
-               }; reader.readAsDataURL(file);
-           });
+                       item.images.push(data.data.url);
+                   } else {
+                       customAlert("照片上傳失敗：" + (data.error?.message || '未知錯誤'));
+                   }
+               } catch (err) {
+                   customAlert("上傳發生錯誤，請稍後再試。");
+                   break; // 若斷網則停止後續上傳
+               }
+           }
+           saveStatus.value = '上傳完成 ✅';
            e.target.value = ''; // 清除 input 確保下次選同一批圖也能觸發
+           setTimeout(() => { if(saveStatus.value.includes('上傳')) saveStatus.value = ''; }, 3000);
         };
 
         const moveToDay = (fromDayIdx, itemIdx, event) => {
