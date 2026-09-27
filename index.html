@@ -98,6 +98,9 @@
     
     .font-kai { font-family: 'DFKai-SB', 'BiauKai', '標楷體', serif !important; }
 
+    .item-ribbon { position: absolute; top: 12px; left: -6px; background-color: var(--theme-color); color: white; font-weight: 900; font-size: 1.1rem; padding: 2px 10px 2px 12px; border-radius: 0 8px 8px 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15); z-index: 20; min-width: 32px; text-align: center; }
+    .item-ribbon::before { content: ""; position: absolute; top: 100%; left: 0; width: 0; height: 0; border-style: solid; border-width: 0 6px 6px 0; border-color: transparent var(--theme-color) transparent transparent; filter: brightness(0.6); }
+
     @media (min-width: 768px) {
       .ticket-cutout {
         mask-image: radial-gradient(circle at 0px 50%, transparent 12px, black 13px), radial-gradient(circle at 100% 50%, transparent 12px, black 13px);
@@ -404,7 +407,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v21</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v25</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -546,7 +549,7 @@
 
           <!-- 總行程與唯讀模式 -->
           <div v-if="activeDayTab === 'overview' || !isEditor" class="space-y-6 md:space-y-8 pb-10 px-2 md:px-0">
-            <div v-for="(day, dayIndex) in tripData.itinerary" :key="`overview-${dayIndex}`" class="relative">
+            <div v-for="(day, dayIndex) in tripData.itinerary" :key="`overview-${dayIndex}`" class="relative" :style="{ '--theme-color': day.themeColor || tripData.themeColor }">
               <div v-show="activeDayTab === 'overview' || activeDayTab === dayIndex">
                 <div class="flex items-center gap-3 mb-3 md:mb-4">
                   <div class="h-px bg-gray-300 flex-1"></div>
@@ -573,50 +576,74 @@
                     <!-- 懸浮的時間軸節點 (加入 hover 放大動畫) -->
                     <div class="absolute -left-[32px] md:-left-[40px] -translate-x-1/2 top-6 md:top-8 w-3 h-3 md:w-3.5 md:h-3.5 theme-bg rounded-full border-[2.5px] border-[#f3f4f6] shadow-sm z-20 group-hover:scale-125 transition-transform duration-300"></div>
                     
-                    <!-- 獨立的純白圓角懸浮卡片 -->
-                    <div class="bg-white py-2.5 px-3.5 md:py-3.5 md:px-5 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100/80 hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-shadow duration-300 relative z-10">
-                      <div class="flex items-center gap-3 md:gap-4 w-full">
-                        <!-- 統一大小的時間格子 (恢復原本字體與顏色) -->
-                        <div class="w-[60px] md:w-[75px] shrink-0">
-                          <div class="flex flex-col items-center justify-center h-auto min-h-[36px] md:min-h-[44px]">
-                            <span v-if="!item.endTime || item.startTime === item.endTime" class="font-black text-gray-900 text-lg md:text-xl whitespace-nowrap">{{ item.startTime || '--:--' }}</span>
-                            <template v-else>
-                              <span class="font-black text-gray-900 text-lg md:text-xl whitespace-nowrap">{{ item.startTime || '--:--' }}</span>
-                              <span class="font-bold text-gray-400 text-[10px] md:text-xs whitespace-nowrap mt-1">{{ item.endTime }}</span>
-                            </template>
-                          </div>
-                        </div>
-                        
-                        <!-- 行程名稱 (恢復原本字體大小、顏色，移除多餘字距) -->
-                        <div class="flex-1 min-w-0">
-                          <h4 class="font-bold break-words" :class="item.isImportant ? 'text-red-500 text-lg md:text-xl' : 'text-gray-800 text-lg md:text-xl'">{{ item.activity || '未命名行程' }}</h4>
-                        </div>
+                    <!-- 獨立的純白圓角懸浮卡片 (Step 1 改造：加入左側大圖與緞帶標籤) -->
+                    <div class="bg-white p-3 md:p-4 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100/80 hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-shadow duration-300 relative z-10 flex gap-3 md:gap-4 overflow-visible">
+                      
+                      <div class="item-ribbon">{{ itemIndex + 1 }}</div>
+
+                      <div class="w-24 h-24 md:w-28 md:h-28 shrink-0 rounded-xl overflow-hidden relative bg-gray-50 border border-gray-200 flex items-center justify-center shadow-sm">
+                         <template v-if="item.images && item.images.length > 0">
+                            <img :src="item.images[0]" @click="activeImage = { list: item.images, index: 0 }" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300">
+                         </template>
+                         <template v-else>
+                            <div class="w-full h-full theme-bg opacity-5"></div>
+                            <span class="absolute text-3xl opacity-20">🏖️</span>
+                         </template>
                       </div>
 
-                      <!-- 【唯讀模式附件】連結、地圖、備忘錄、多圖相簿 -->
-                      <div v-if="item.link || item.map || item.memo || (item.images && item.images.length > 0) || item.operatingHours || (item.tickets && item.tickets.length > 0)" class="flex w-full mt-1.5 md:mt-2">
-                         <!-- 隱形佔位器，在手機板隱藏讓備忘錄展開，電腦版對齊時間格 -->
-                         <div class="w-[60px] md:w-[75px] mr-3 md:mr-4 shrink-0 invisible hidden sm:block"></div>
-                         <div class="flex-1 flex flex-col gap-2 min-w-0">
-                             <div v-if="item.link || item.map || item.operatingHours || (item.tickets && item.tickets.length > 0)" class="flex flex-wrap gap-2">
-                                 <a v-if="item.link" :href="item.link" target="_blank" class="flex items-center gap-1.5 bg-blue-50/80 border border-blue-200/80 rounded-lg px-2.5 py-1.5 text-[11px] md:text-xs shadow-sm text-blue-700 font-bold hover:bg-blue-100 transition-colors truncate w-max max-w-[150px] md:max-w-[200px]">🔗 連結</a>
-                                 <a v-if="item.map" :href="item.map" target="_blank" class="flex items-center gap-1.5 bg-emerald-50/80 border border-emerald-200/80 rounded-lg px-2.5 py-1.5 text-[11px] md:text-xs shadow-sm text-emerald-700 font-bold hover:bg-emerald-100 transition-colors truncate w-max max-w-[150px] md:max-w-[200px]">📍 地圖</a>
-                                 <div v-if="item.operatingHours" class="flex items-center gap-1.5 bg-orange-50/80 border border-orange-200/80 rounded-lg px-2.5 py-1.5 text-[11px] md:text-xs shadow-sm text-orange-700 font-bold transition-colors truncate w-max max-w-[200px]">⏰ {{ item.operatingHours }}</div>
-                                 <div v-if="item.tickets && item.tickets.length > 0" class="flex items-center gap-1.5 bg-pink-50/80 border border-pink-200/80 rounded-lg px-2.5 py-1.5 text-[11px] md:text-xs shadow-sm text-pink-700 font-bold transition-colors truncate w-max">
-                                    🎟️ <span v-for="(t, i) in item.tickets" :key="t.id">{{ t.type }} ${{ t.price }}<span v-if="i < item.tickets.length - 1" class="text-pink-300 mx-1">|</span></span>
-                                 </div>
-                             </div>
-                             
-                             <!-- 備忘錄智慧折疊顯示 -->
-                             <div v-if="item.memo" @click="activeMemo = item.memo" class="cursor-pointer group flex items-start gap-1.5 bg-gray-50/80 border-l-2 border-gray-300 rounded-r-lg px-2.5 py-2 hover:bg-gray-100 transition-colors w-full" title="點擊查看完整備忘錄">
-                                 <span class="text-[11px] md:text-xs opacity-60 mt-px shrink-0">📝</span>
-                                 <p class="text-[11px] md:text-xs text-gray-500 line-clamp-2 leading-relaxed group-hover:text-gray-700 transition-colors whitespace-pre-line break-words flex-1 min-w-0">{{ item.memo }}</p>
-                             </div>
+                      <!-- 右側主內容區 (Step 2 改造：精緻化時間、標題與附件小標籤) -->
+                      <div class="flex-1 min-w-0 flex flex-col justify-center py-1 relative pr-12 md:pr-16">
+                        
+                        <!-- 時間區塊 -->
+                        <div class="flex items-center gap-2 theme-text mb-0.5">
+                          <div class="w-5 h-5 md:w-6 md:h-6 rounded-full border-[1.5px] border-[var(--theme-color)] flex items-center justify-center shrink-0 bg-white">
+                            <div v-if="!item.category || item.category === '🔵'" class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full theme-bg opacity-80"></div>
+                            <span v-else class="text-[11px] md:text-[13px] leading-none">{{ item.category }}</span>
+                          </div>
+                          <span class="font-black text-lg md:text-xl tracking-wide leading-none">
+                            {{ item.startTime || '--:--' }}
+                            <template v-if="item.endTime && item.endTime !== item.startTime"> - {{ item.endTime }}</template>
+                          </span>
+                        </div>
 
-                             <div v-if="item.images && item.images.length > 0" class="flex overflow-x-auto gap-2.5 hide-scrollbar pb-1 mt-1">
-                                 <img v-for="(imgSrc, imgIdx) in item.images" :key="imgIdx" :src="imgSrc" @click="activeImage = { list: item.images, index: imgIdx }" class="rounded-xl h-24 md:h-32 object-cover border border-slate-200 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] shrink-0 w-auto cursor-pointer hover:opacity-90 transition-opacity">
-                             </div>
-                         </div>
+                        <!-- 標題區塊 -->
+                        <h4 class="font-black text-lg md:text-2xl break-words line-clamp-2 leading-tight" :class="item.isImportant ? 'text-red-500' : 'text-gray-800'">
+                          {{ item.activity || '未命名行程' }}
+                        </h4>
+
+                        <!-- 附件小標籤列 (Pills) -->
+                        <div v-if="item.link || item.memo || item.operatingHours || (item.tickets && item.tickets.length > 0) || (item.images && item.images.length > 1)" class="mt-2.5 flex flex-wrap gap-1.5 md:gap-2">
+                           <!-- 備忘錄 -->
+                           <div v-if="item.memo" @click="activeMemo = item.memo" class="cursor-pointer text-[11px] md:text-xs text-gray-500 font-bold bg-gray-100 px-2 py-1 rounded-md hover:bg-gray-200 transition-colors flex items-center gap-1 w-max shadow-sm border border-gray-200" title="點擊查看完整備忘錄">
+                             📝 筆記
+                           </div>
+                           <!-- 營業時間 -->
+                           <div v-if="item.operatingHours" class="text-[11px] md:text-xs text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded-md flex items-center gap-1 w-max shadow-sm border border-orange-100">
+                             ⏰ {{ item.operatingHours }}
+                           </div>
+                           <!-- 票價 (糖果膠囊) -->
+                           <template v-if="item.tickets && item.tickets.length > 0">
+                              <div v-for="t in item.tickets" :key="t.id" class="text-[11px] md:text-xs text-pink-600 font-bold bg-pink-50 px-2 py-1 rounded-md flex items-center gap-1 w-max shadow-sm border border-pink-100">
+                                🎟️ {{ t.type }} ${{ t.price }}
+                              </div>
+                           </template>
+                           <!-- 相關連結 -->
+                           <a v-if="item.link" :href="item.link" target="_blank" class="text-[11px] md:text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 w-max shadow-sm border border-blue-100">
+                             🔗 連結
+                           </a>
+                           <!-- 多張照片提示 -->
+                           <div v-if="item.images && item.images.length > 1" @click="activeImage = { list: item.images, index: 1 }" class="cursor-pointer text-[11px] md:text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-md hover:bg-emerald-100 transition-colors flex items-center gap-1 w-max shadow-sm border border-emerald-100">
+                             🖼️ +{{ item.images.length - 1 }} 相片
+                           </div>
+                        </div>
+
+                        <!-- 右下角：導航紙飛機按鈕 -->
+                        <a v-if="item.map" :href="item.map" target="_blank" class="absolute bottom-0 right-0 w-10 h-10 md:w-12 md:h-12 rounded-full shadow-md flex items-center justify-center text-white bg-blue-500 hover:bg-blue-600 transition-all z-10 hover:scale-105" title="開啟地圖導航">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 md:w-5 md:h-5 -ml-0.5 mt-0.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                        </a>
+                        <div v-else class="absolute bottom-0 right-0 w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-gray-100 flex items-center justify-center text-gray-300 bg-gray-50/50 z-10" title="未設定地圖連結">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 md:w-5 md:h-5 -ml-0.5 mt-0.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                        </div>
                       </div>
                     </div>
                     
@@ -635,9 +662,18 @@
           </div>
 
           <!-- 編輯模式 -->
-          <div v-else-if="isEditor" class="bg-white p-3 md:p-8 rounded-xl border border-gray-200 shadow-sm relative">
+          <div v-else-if="isEditor" class="bg-white p-3 md:p-8 rounded-xl border border-gray-200 shadow-sm relative" :style="{ '--theme-color': tripData.itinerary[activeDayTab].themeColor || tripData.themeColor }">
             <div class="flex justify-between items-center mb-2 md:mb-4 border-b border-gray-100 pb-2 md:pb-3">
-              <div><h3 class="text-lg md:text-xl font-bold text-gray-900">Day {{ activeDayTab + 1 }}</h3><p class="text-xs md:text-sm theme-text font-bold">{{ tripData.itinerary[activeDayTab].dateStr }}</p></div>
+              <div class="flex items-center gap-3">
+                <div>
+                  <h3 class="text-lg md:text-xl font-bold text-gray-900">Day {{ activeDayTab + 1 }}</h3>
+                  <p class="text-xs md:text-sm theme-text font-bold">{{ tripData.itinerary[activeDayTab].dateStr }}</p>
+                </div>
+                <div class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-full border border-gray-200 shadow-sm">
+                  <span class="text-[10px] md:text-xs font-bold text-gray-500">🎨 專屬色</span>
+                  <input type="color" v-model="tripData.itinerary[activeDayTab].themeColor" class="w-5 h-5 rounded cursor-pointer border-0 p-0 bg-transparent">
+                </div>
+              </div>
             </div>
             
             <div v-if="getHotelsForDay(activeDayTab + 1).length > 0 || getTransportsForDay(activeDayTab + 1).length > 0" class="flex flex-wrap gap-2.5 mb-5 px-3 py-2.5 bg-gray-50/80 rounded-xl border border-gray-100 shadow-sm relative">
@@ -666,6 +702,23 @@
                       <span class="text-gray-400 font-bold text-[10px] md:text-xs">-</span>
                       <input type="time" v-model="item.endTime" @change="userChangedEndTime(activeDayTab, itemIndex)" class="border border-gray-200 rounded compact-input text-[11px] md:text-sm font-bold w-[72px] md:w-[95px] focus-theme outline-none text-center bg-white text-gray-800">
                     </div>
+                    
+                    <!-- 新增的分類下拉選單 -->
+                    <div class="flex-shrink-0 relative flex items-stretch">
+                       <select v-model="item.category" class="appearance-none bg-white border border-gray-200 rounded text-xs md:text-sm cursor-pointer focus-theme outline-none pl-1.5 md:pl-2 pr-4 shadow-sm w-[38px] md:w-[48px]">
+                          <option value="🔵" title="預設">🔵</option>
+                          <option value="🚗" title="交通">🚗</option>
+                          <option value="🍽️" title="用餐">🍽️</option>
+                          <option value="📸" title="景點">📸</option>
+                          <option value="🎡" title="娛樂">🎡</option>
+                          <option value="🛍️" title="購物">🛍️</option>
+                          <option value="🏨" title="住宿">🏨</option>
+                       </select>
+                       <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1 md:pr-1.5 text-gray-400">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                       </div>
+                    </div>
+                    
                     <input type="text" v-model="item.activity" placeholder="行程名稱" :class="item.isImportant ? 'text-red-500' : 'text-gray-800'" class="bg-white border border-gray-200 rounded compact-input font-bold text-sm md:text-base flex-1 min-w-0 focus-theme outline-none tracking-wide">
                     <div class="relative flex-shrink-0">
                       <button @click="toggleMenu(activeDayTab, itemIndex)" class="text-gray-500 hover:text-gray-800 p-1 md:px-2 bg-white border border-gray-300 rounded md:text-base text-xs shadow-sm focus-theme transition-colors">⚙️</button>
@@ -1713,6 +1766,7 @@
         const saveStatus = ref('');
         let saveTimeout = null;
         const tabs = ['行程', '航班', '交通', '住宿', '行李', '花費'];
+        const dayPalette = ['#0ea5e9', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#14b8a6'];
         const currentView = ref('行程');
         const activeDayTab = ref('overview');
         const activeMemo = ref(null); 
@@ -2241,7 +2295,8 @@
             }
 
             if (data.itinerary) {
-               data.itinerary.forEach(day => {
+               data.itinerary.forEach((day, index) => {
+                  if (!day.themeColor) day.themeColor = dayPalette[index % dayPalette.length];
                   if (day.items && day.items.length === 1) {
                      const item = day.items[0];
                      if (!item.activity && !item.stay && item.startTime === '09:00') { day.items = []; day.transit = []; }
@@ -2257,6 +2312,7 @@
                              item.images = false;
                          }
                          if (item.tempImageUrl === undefined) item.tempImageUrl = '';
+                         if (!item.category) item.category = '🔵';
 
                          if (!item.endTime && item.startTime) {
                              let [h, m] = item.startTime.split(':').map(Number);
@@ -2380,8 +2436,14 @@
           for(let i = 0; i < newDiffDays; i++) {
             const cur = new Date(start); cur.setDate(cur.getDate() + i);
             const dateStr = `${cur.getFullYear()}/${String(cur.getMonth()+1).padStart(2,'0')}/${String(cur.getDate()).padStart(2,'0')} (星期${daysOfWeek[cur.getDay()]})`;
-            if (i < tripData.value.itinerary.length) tripData.value.itinerary[i].dateStr = dateStr;
-            else tripData.value.itinerary.push({ dateStr, items: [], transit: [] }); 
+            const themeColor = dayPalette[i % dayPalette.length];
+            if (i < tripData.value.itinerary.length) {
+              tripData.value.itinerary[i].dateStr = dateStr;
+              if (!tripData.value.itinerary[i].themeColor) tripData.value.itinerary[i].themeColor = themeColor;
+            }
+            else {
+              tripData.value.itinerary.push({ dateStr, themeColor, items: [], transit: [] }); 
+            }
           }
           isSetup.value = false;
         };
@@ -2481,7 +2543,7 @@
         const addItem = (dayIdx) => { 
           const day = tripData.value.itinerary[dayIdx];
           const isFirstItem = day.items.length === 0;
-          day.items.push({ id: generateId(), startTime: isFirstItem ? '09:00' : '', endTime: isFirstItem ? '09:00' : '', activity: '', stay: 0, showMenu: false, images: false, tempImageUrl: '', isImportant: false }); 
+          day.items.push({ id: generateId(), startTime: isFirstItem ? '09:00' : '', endTime: isFirstItem ? '09:00' : '', activity: '', stay: 0, showMenu: false, images: false, tempImageUrl: '', isImportant: false, category: '🔵' }); 
           if (!isFirstItem) { day.transit.push({ method: '地鐵/捷運', duration: 30, customMethod: '' }); }
           recalculateDay(dayIdx); 
         };
@@ -2547,7 +2609,7 @@
         const insertItemAfter = (dayIdx, itemIdx) => {
            const day = tripData.value.itinerary[dayIdx];
            day.items[itemIdx].showMenu = false;
-           const newItem = { id: generateId(), startTime: '', endTime: '', activity: '', stay: 0, showMenu: false, images: false, tempImageUrl: '', isImportant: false };
+           const newItem = { id: generateId(), startTime: '', endTime: '', activity: '', stay: 0, showMenu: false, images: false, tempImageUrl: '', isImportant: false, category: '🔵' };
            day.items.splice(itemIdx + 1, 0, newItem);
            // 插入一個預設的交通動線來銜接新的行程
            day.transit.splice(itemIdx, 0, { method: '地鐵/捷運', duration: 30, customMethod: '' });
