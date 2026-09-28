@@ -407,7 +407,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v30</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v31</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -611,21 +611,22 @@
                    </div>
                 </div>
 
-                <div class="relative pl-12 md:pl-16 mt-2">
-                  <!-- 獨立於卡片之外的全新發光時間軸底線 -->
-                  <div v-if="day.items.length > 0" class="absolute left-4 md:left-6 -translate-x-1/2 top-4 bottom-4 w-[2px] bg-gray-200/80 rounded-full"></div>
+                <div class="relative pl-8 md:pl-12 mt-2">
+                  <!-- 獨立於卡片之外的全新發光時間軸底線 (向左微調釋放空間) -->
+                  <div v-if="day.items.length > 0" class="absolute left-2.5 md:left-4 -translate-x-1/2 top-4 bottom-4 w-[2px] bg-gray-200/80 rounded-full"></div>
                   <div v-if="day.items.length === 0" class="text-gray-400 text-xs md:text-sm font-bold ml-2 md:ml-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">尚未安排行程</div>
                   
                   <div v-for="(item, itemIndex) in day.items" class="relative z-10 mb-0 last:mb-2 group">
-                    <!-- 懸浮的時間軸節點 (加入 hover 放大動畫) -->
-                    <div class="absolute -left-[32px] md:-left-[40px] -translate-x-1/2 top-6 md:top-8 w-3 h-3 md:w-3.5 md:h-3.5 theme-bg rounded-full border-[2.5px] border-[#f3f4f6] shadow-sm z-20 group-hover:scale-125 transition-transform duration-300"></div>
+                    <!-- 懸浮的時間軸節點 (配合時間軸左移) -->
+                    <div class="absolute -left-[22px] md:-left-[32px] -translate-x-1/2 top-6 md:top-8 w-3 h-3 md:w-3.5 md:h-3.5 theme-bg rounded-full border-[2.5px] border-[#f3f4f6] shadow-sm z-20 group-hover:scale-125 transition-transform duration-300"></div>
                     
                     <!-- 獨立的純白圓角懸浮卡片 (Step 1 改造：加入左側大圖與緞帶標籤) -->
                     <div class="bg-white p-3 md:p-4 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100/80 hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-shadow duration-300 relative z-10 flex gap-3 md:gap-4 overflow-visible">
                       
                       <div class="item-ribbon">{{ itemIndex + 1 }}</div>
 
-                      <div class="w-24 h-24 md:w-28 md:h-28 shrink-0 rounded-xl overflow-hidden relative bg-gray-50 border border-gray-200 flex items-center justify-center shadow-sm group/img">
+                      <!-- 左側正方形主圖 (手機版縮小至 w-20 釋放右側文字空間) -->
+                      <div class="w-20 h-20 md:w-28 md:h-28 shrink-0 rounded-xl overflow-hidden relative bg-gray-50 border border-gray-200 flex items-center justify-center shadow-sm group/img">
                          <template v-if="item.images && item.images.length > 0">
                             <!-- 全方位對焦支援：動態綁定 object-position -->
                             <img :src="item.images[0]" @click="activeImage = { list: item.images, index: 0 }" class="w-full h-full cursor-pointer hover:scale-105 transition-transform duration-300" :style="{ objectFit: 'cover', objectPosition: item.focus || 'center' }">
@@ -644,8 +645,8 @@
                          </template>
                       </div>
 
-                      <!-- 右側主內容區 (Step 2 改造：精緻化時間、標題與附件小標籤) -->
-                      <div class="flex-1 min-w-0 flex flex-col justify-center py-1 relative pr-12 md:pr-16">
+                      <!-- 右側主內容區 (解除 pr-12 限制，讓文字能延伸到最右邊) -->
+                      <div class="flex-1 min-w-0 flex flex-col justify-center py-1 relative pr-2 md:pr-4 pb-6 md:pb-2">
                         
                         <!-- 時間區塊 -->
                         <div class="flex items-center gap-2 theme-text mb-0.5">
@@ -695,21 +696,21 @@
                             </div>
                         </div>
 
-                        <!-- 右下角：導航紙飛機按鈕 -->
-                        <a v-if="item.map" :href="item.map" target="_blank" class="absolute bottom-0 right-0 w-10 h-10 md:w-12 md:h-12 rounded-full shadow-md flex items-center justify-center text-white bg-blue-500 hover:bg-blue-600 transition-all z-10 hover:scale-105" title="開啟地圖導航">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 md:w-5 md:h-5 -ml-0.5 mt-0.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                        <!-- 右下角：導航紙飛機按鈕 (手機版縮小，不干擾文字排版) -->
+                        <a v-if="item.map" :href="item.map" target="_blank" class="absolute bottom-0 right-0 w-8 h-8 md:w-10 md:h-10 rounded-full shadow-md flex items-center justify-center text-white bg-blue-500 hover:bg-blue-600 transition-all z-10 hover:scale-105" title="開啟地圖導航">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 md:w-4 md:h-4 -ml-0.5 mt-0.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
                         </a>
-                        <div v-else class="absolute bottom-0 right-0 w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-gray-100 flex items-center justify-center text-gray-300 bg-gray-50/50 z-10" title="未設定地圖連結">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 md:w-5 md:h-5 -ml-0.5 mt-0.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                        <div v-else class="absolute bottom-0 right-0 w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-gray-100 flex items-center justify-center text-gray-300 bg-gray-50/50 z-10" title="未設定地圖連結">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 md:w-4 md:h-4 -ml-0.5 mt-0.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
                         </div>
                       </div>
                     </div>
                     
                     <!-- 【交通動線】鑲嵌在卡片外的時間軸設計 -->
                     <div v-if="itemIndex < day.items.length - 1 && day.transit && day.transit[itemIndex]" class="w-full mt-0 mb-0 relative flex items-center h-[30px] md:h-[40px]">
-                       <!-- 橫向微型膠囊設計 (支援點擊查看細節 v26) -->
+                       <!-- 橫向微型膠囊設計 (配合時間軸左移) -->
                        <div @click="day.transit[itemIndex].steps && day.transit[itemIndex].steps.length > 0 ? openTransitModal(dayIndex, itemIndex) : null" 
-                            :class="['absolute -left-[32px] md:-left-[40px] -translate-x-1/2 flex items-center gap-1 border shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] z-10 py-1 px-2 md:px-2.5 rounded-full whitespace-nowrap transition-all duration-300', 
+                            :class="['absolute -left-[22px] md:-left-[32px] -translate-x-1/2 flex items-center gap-1 border shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] z-10 py-1 px-2 md:px-2.5 rounded-full whitespace-nowrap transition-all duration-300', 
                                      day.transit[itemIndex].steps && day.transit[itemIndex].steps.length > 0 ? 'theme-bg text-white border-transparent cursor-pointer hover:scale-105 hover:shadow-lg' : 'bg-white border-gray-200/80 text-gray-500 cursor-default']">
                            <span class="text-[10px] md:text-xs" :class="day.transit[itemIndex].steps && day.transit[itemIndex].steps.length > 0 ? 'opacity-100' : 'opacity-80'">{{ getTransitIcon(day.transit[itemIndex].method) }}</span>
                            <span class="text-[10px] md:text-xs font-bold" :class="day.transit[itemIndex].steps && day.transit[itemIndex].steps.length > 0 ? 'text-white' : 'text-gray-500'">{{ formatDuration(day.transit[itemIndex].duration) }}</span>
