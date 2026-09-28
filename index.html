@@ -407,7 +407,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v32</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v33</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -760,10 +760,10 @@
                    class="transition-all duration-300">
                 <div class="absolute -left-[14.5px] md:-left-[22px] top-3.5 md:top-4 w-2.5 h-2.5 md:w-3 md:h-3 theme-bg rounded-full border-2 border-white shadow-sm hidden md:block"></div>
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-1.5 md:p-2 hover:shadow-md transition-shadow relative z-20">
-                  <div class="flex flex-col md:flex-row items-start md:items-center gap-2 w-full">
+                  <div class="flex flex-col md:flex-row md:items-center gap-2 w-full">
                     
-                    <!-- 手機版第一層 / 電腦版左側：時間與分類 -->
-                    <div class="flex items-center gap-1 md:gap-2 w-full md:w-auto shrink-0">
+                    <!-- 第一層 (手機) / 左側 (電腦)：時間區塊與分類選單 -->
+                    <div class="flex items-center gap-1 md:gap-2 w-full md:w-auto md:shrink-0">
                       <!-- 編輯模式：時間格子設定固定寬度 w-[160px] 或 w-[210px] -->
                       <div class="flex items-center justify-between gap-0.5 md:gap-1 flex-shrink-0 w-[160px] md:w-[210px]">
                         <input type="time" v-model="item.startTime" @change="userChangedStartTime(activeDayTab, itemIndex)" class="border border-gray-200 rounded compact-input text-[11px] md:text-sm font-bold w-[72px] md:w-[95px] focus-theme outline-none text-center bg-white text-gray-800">
@@ -771,7 +771,7 @@
                         <input type="time" v-model="item.endTime" @change="userChangedEndTime(activeDayTab, itemIndex)" class="border border-gray-200 rounded compact-input text-[11px] md:text-sm font-bold w-[72px] md:w-[95px] focus-theme outline-none text-center bg-white text-gray-800">
                       </div>
                       
-                      <!-- 分類下拉選單 -->
+                      <!-- 新增的分類下拉選單 -->
                       <div class="flex-shrink-0 relative flex items-stretch">
                          <select v-model="item.category" class="appearance-none bg-white border border-gray-200 rounded text-xs md:text-sm cursor-pointer focus-theme outline-none pl-1.5 md:pl-2 pr-4 shadow-sm w-[38px] md:w-[48px]">
                             <option value="🔵" title="預設">🔵</option>
@@ -787,44 +787,41 @@
                          </div>
                       </div>
                     </div>
-                    
-                    <!-- 手機版第二層 / 電腦版右側：行程名稱與功能按鈕 -->
-                    <div class="flex items-center gap-1 md:gap-2 w-full md:flex-1 min-w-0">
-                      <input type="text" v-model="item.activity" placeholder="行程名稱" :class="item.isImportant ? 'text-red-500' : 'text-gray-800'" class="bg-white border border-gray-200 rounded compact-input font-bold text-sm md:text-base flex-1 min-w-0 focus-theme outline-none tracking-wide">
+
+                    <!-- 第二層 (手機) / 右側 (電腦)：行程名稱與齒輪按鈕 -->
+                    <div class="flex items-center gap-1 md:gap-2 flex-1 w-full min-w-0 mt-1 md:mt-0">
+                      <input type="text" v-model="item.activity" placeholder="行程名稱" :class="item.isImportant ? 'text-red-500' : 'text-gray-800'" class="bg-white border border-gray-200 rounded compact-input font-bold text-sm md:text-base flex-1 min-w-0 focus-theme outline-none tracking-wide w-full">
                       <div class="relative flex-shrink-0">
                         <button @click="toggleMenu(activeDayTab, itemIndex)" class="text-gray-500 hover:text-gray-800 p-1 md:px-2 bg-white border border-gray-300 rounded md:text-base text-xs shadow-sm focus-theme transition-colors">⚙️</button>
                         <div v-if="item.showMenu" class="fixed inset-0 z-30" @click="item.showMenu = false"></div>
                         <div v-if="item.showMenu" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 w-44 py-1 text-sm flex flex-col">
-                           </div>
+                          <button @click="insertItemAfter(activeDayTab, itemIndex)" class="text-left px-3 py-1.5 hover:bg-blue-50 text-blue-600 font-bold flex items-center gap-2 relative z-50 transition-colors"><span class="w-4 text-center">➕</span> 插入新行程於下方</button>
+                          <div class="h-px bg-gray-100 my-1 relative z-50"></div>
+                          <button @click="item.isImportant = !item.isImportant; item.showMenu = false" class="text-left px-3 py-1.5 hover:bg-red-50 flex items-center gap-2" :class="item.isImportant ? 'text-red-600 font-bold' : 'text-gray-700'"><span class="w-4 text-center">⭐</span> {{ item.isImportant ? '取消重要標記' : '標記為重要行程' }}</button>
+                          <div class="h-px bg-gray-100 my-1 relative z-50"></div>
+                          <div class="px-2 py-1.5 border-b border-gray-100 bg-gray-50 relative z-50">
+                            <select @change="moveToDay(activeDayTab, itemIndex, $event)" class="w-full text-xs md:text-sm bg-white border border-gray-300 rounded p-1 text-gray-700 outline-none focus-theme">
+                              <option value="" disabled selected>⏏️ 挪至他日...</option>
+                              <option v-for="(d, idx) in tripData.itinerary" :key="idx" :value="idx" :disabled="idx === activeDayTab">Day {{idx+1}}</option>
+                            </select>
+                          </div>
+                          <button @click="openField(item, 'link')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🔗</span> 加入連結</button>
+                          <button @click="openField(item, 'map')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">📍</span> 加入地圖</button>
+                          <button @click="openField(item, 'operatingHours')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">⏰</span> 加入營業時間</button>
+                          <button @click="openField(item, 'tickets')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🎟️</span> 加入票價</button>
+                          <button @click="openField(item, 'memo')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">📝</span> 加入備忘錄</button>
+                          <button @click="openField(item, 'images')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🖼️</span> 加入圖片</button>
+                          <div class="h-px bg-gray-100 my-1 relative z-50"></div>
+                          <button @click="deleteItem(activeDayTab, itemIndex)" class="text-left px-3 py-1.5 text-red-500 hover:bg-red-50 font-bold flex items-center gap-2 relative z-50"><span class="w-4 text-center">🗑️</span> 刪除</button>
                         </div>
-                        <button @click="insertItemAfter(activeDayTab, itemIndex)" class="text-left px-3 py-1.5 hover:bg-blue-50 text-blue-600 font-bold flex items-center gap-2 relative z-50 transition-colors"><span class="w-4 text-center">➕</span> 插入新行程於下方</button>
-                        <div class="h-px bg-gray-100 my-1 relative z-50"></div>
-
-                        <button @click="item.isImportant = !item.isImportant; item.showMenu = false" class="text-left px-3 py-1.5 hover:bg-red-50 flex items-center gap-2" :class="item.isImportant ? 'text-red-600 font-bold' : 'text-gray-700'"><span class="w-4 text-center">⭐</span> {{ item.isImportant ? '取消重要標記' : '標記為重要行程' }}</button>
-                        <div class="h-px bg-gray-100 my-1 relative z-50"></div>
-
-                        <div class="px-2 py-1.5 border-b border-gray-100 bg-gray-50 relative z-50">
-                          <select @change="moveToDay(activeDayTab, itemIndex, $event)" class="w-full text-xs md:text-sm bg-white border border-gray-300 rounded p-1 text-gray-700 outline-none focus-theme">
-                            <option value="" disabled selected>⏏️ 挪至他日...</option>
-                            <option v-for="(d, idx) in tripData.itinerary" :key="idx" :value="idx" :disabled="idx === activeDayTab">Day {{idx+1}}</option>
-                          </select>
-                        </div>
-                        <button @click="openField(item, 'link')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🔗</span> 加入連結</button>
-                        <button @click="openField(item, 'map')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">📍</span> 加入地圖</button>
-                        <button @click="openField(item, 'operatingHours')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">⏰</span> 加入營業時間</button>
-                        <button @click="openField(item, 'tickets')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🎟️</span> 加入票價</button>
-                        <button @click="openField(item, 'memo')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">📝</span> 加入備忘錄</button>
-                        <button @click="openField(item, 'images')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🖼️</span> 加入圖片</button>
-                        <div class="h-px bg-gray-100 my-1 relative z-50"></div>
-                        <button @click="deleteItem(activeDayTab, itemIndex)" class="text-left px-3 py-1.5 text-red-500 hover:bg-red-50 font-bold flex items-center gap-2 relative z-50"><span class="w-4 text-center">🗑️</span> 刪除</button>
                       </div>
                     </div>
                   </div>
                   
                   <!-- 編輯模式的連結、地圖、備忘錄區塊 -->
                   <div class="mt-1 flex w-full">
-                    <!-- 使用與上方時間格子等寬的隱形佔位器來對齊 (手機版隱藏以釋放空間) -->
-                    <div class="flex-shrink-0 w-[160px] md:w-[210px] mr-1 md:mr-2 invisible hidden md:block"></div>
+                    <!-- 使用與上方時間格子等寬的隱形佔位器來對齊 (手機版隱藏，釋放空間) -->
+                    <div class="hidden md:block flex-shrink-0 w-[160px] md:w-[210px] mr-1 md:mr-2 invisible"></div>
                     <div class="flex-1 flex flex-col gap-1.5 min-w-0">
                         <template v-if="item.link !== undefined && item.link !== false">
                           <div v-if="!item.editLink && item.link" class="flex items-center gap-1 bg-blue-50 border border-blue-200 rounded px-2 py-1 text-[11px] md:text-xs shadow-sm w-max">
@@ -933,10 +930,10 @@
                 <!-- 編輯模式的交通區塊 (直接對齊時間格子) -->
                 <div v-if="itemIndex < tripData.itinerary[activeDayTab].items.length - 1" class="my-1.5 md:my-2 flex flex-col w-full relative z-10">
                   <div class="flex w-full">
-                    <!-- 編輯模式的隱形佔位器 (手機版隱藏以釋放空間) -->
-                    <div class="flex-shrink-0 w-[160px] md:w-[210px] mr-1 md:mr-2 invisible hidden md:block"></div>
-                    <div class="flex flex-col md:flex-row gap-2 items-start md:items-center">
-                      <div class="bg-blue-50 border border-blue-200 rounded-full px-2 py-1 md:px-3 md:py-1.5 flex items-center shadow-sm focus-within:border-blue-400 shrink-0">
+                    <!-- 編輯模式的隱形佔位器 (手機版隱藏，全面對齊) -->
+                    <div class="flex-shrink-0 w-[160px] md:w-[210px] mr-1 md:mr-2 hidden md:block invisible"></div>
+                    <div class="flex flex-col md:flex-row gap-2 items-start md:items-center w-full">
+                      <div class="bg-blue-50 border border-blue-200 rounded-full px-2 py-1 md:px-3 md:py-1.5 flex items-center justify-between md:justify-start shadow-sm focus-within:border-blue-400 shrink-0 w-full md:w-auto">
                         <div class="flex items-center">
                           <span class="text-blue-600 font-bold hidden md:inline text-[10px] md:text-xs mr-1">🚌 移動</span><span class="text-blue-600 font-bold md:hidden text-[10px] mr-1">🚌</span>
                           <select v-model="tripData.itinerary[activeDayTab].transit[itemIndex].method" class="bg-transparent font-bold text-blue-700 outline-none cursor-pointer text-[10px] md:text-xs text-center pr-1">
@@ -960,7 +957,7 @@
                   
                   <!-- v26 步驟產生器面板 -->
                   <div v-if="tripData.itinerary[activeDayTab].transit[itemIndex].showSteps" class="mt-2 flex w-full">
-                     <div class="flex-shrink-0 w-[160px] md:w-[210px] mr-1 md:mr-2 invisible hidden md:block"></div>
+                     <div class="hidden md:block flex-shrink-0 md:w-[210px] md:mr-2 invisible"></div>
                      <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-3 w-full max-w-sm">
                         <div class="flex items-center justify-between mb-2 border-b border-blue-100 pb-2">
                            <span class="text-[10px] font-bold text-blue-600 flex items-center gap-1">📍 交通步驟指引</span>
