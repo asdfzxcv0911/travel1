@@ -407,7 +407,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v28</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v30</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -625,9 +625,18 @@
                       
                       <div class="item-ribbon">{{ itemIndex + 1 }}</div>
 
-                      <div class="w-24 h-24 md:w-28 md:h-28 shrink-0 rounded-xl overflow-hidden relative bg-gray-50 border border-gray-200 flex items-center justify-center shadow-sm">
+                      <div class="w-24 h-24 md:w-28 md:h-28 shrink-0 rounded-xl overflow-hidden relative bg-gray-50 border border-gray-200 flex items-center justify-center shadow-sm group/img">
                          <template v-if="item.images && item.images.length > 0">
-                            <img :src="item.images[0]" @click="activeImage = { list: item.images, index: 0 }" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300">
+                            <!-- 全方位對焦支援：動態綁定 object-position -->
+                            <img :src="item.images[0]" @click="activeImage = { list: item.images, index: 0 }" class="w-full h-full cursor-pointer hover:scale-105 transition-transform duration-300" :style="{ objectFit: 'cover', objectPosition: item.focus || 'center' }">
+                            <!-- 5向對焦控制列 (編輯模式可見) -->
+                            <div v-if="isEditor" class="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm rounded-full px-1 py-0.5 flex items-center gap-0.5 opacity-0 group-hover/img:opacity-100 transition-opacity z-20 shadow-lg">
+                              <button @click.stop="setFocus(item, 'left center')" class="text-[10px] hover:scale-125 transition-transform p-0.5" title="偏左">⬅️</button>
+                              <button @click.stop="setFocus(item, 'center top')" class="text-[10px] hover:scale-125 transition-transform p-0.5" title="偏上">⬆️</button>
+                              <button @click.stop="setFocus(item, 'center center')" class="text-[10px] hover:scale-125 transition-transform p-0.5" title="置中">⏺️</button>
+                              <button @click.stop="setFocus(item, 'center bottom')" class="text-[10px] hover:scale-125 transition-transform p-0.5" title="偏下">⬇️</button>
+                              <button @click.stop="setFocus(item, 'right center')" class="text-[10px] hover:scale-125 transition-transform p-0.5" title="偏右">➡️</button>
+                            </div>
                          </template>
                          <template v-else>
                             <div class="w-full h-full theme-bg opacity-5"></div>
@@ -681,6 +690,8 @@
                         <div v-if="item.images && item.images.length > 1" class="mt-3 flex overflow-x-auto gap-2 hide-scrollbar pb-1 w-full relative z-20">
                             <div v-for="(imgSrc, imgIdx) in item.images.slice(1)" :key="'thumb-'+imgIdx" class="shrink-0 relative group">
                                 <img :src="imgSrc" @click="activeImage = { list: item.images, index: imgIdx + 1 }" class="w-14 h-14 md:w-16 md:h-16 rounded-xl object-cover cursor-pointer shadow-sm border border-gray-200/80 hover:scale-105 transition-transform duration-300">
+                                <!-- 加入「設為首圖」按鈕 -->
+                                <button v-if="isEditor" @click.stop="setAsCover(item.images, imgIdx + 1)" class="absolute bottom-0 left-0 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">⭐ 首圖</button>
                             </div>
                         </div>
 
@@ -894,7 +905,9 @@
                            <div v-if="item.images.length > 0" class="flex overflow-x-auto gap-2 hide-scrollbar pb-2">
                              <div v-for="(imgSrc, imgIdx) in item.images" :key="imgIdx" class="relative group shrink-0">
                                 <img :src="imgSrc" @click="activeImage = { list: item.images, index: imgIdx }" class="rounded-lg h-20 md:h-28 object-cover border border-gray-200 shadow-sm w-auto cursor-pointer hover:opacity-90 transition-opacity">
-                                <button @click="removeImage(activeDayTab, itemIndex, imgIdx)" class="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
+                                <button @click.stop="removeImage(activeDayTab, itemIndex, imgIdx)" class="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
+                                <!-- 新增：設為首圖按鈕 (僅第二張以後顯示) -->
+                                <button v-if="imgIdx > 0" @click.stop="setAsCover(activeDayTab, itemIndex, imgIdx)" class="absolute bottom-1 left-1 bg-black/60 hover:bg-yellow-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-sm flex items-center gap-0.5">⭐ 首圖</button>
                              </div>
                            </div>
                            <div v-else class="text-center py-2 text-[10px] text-gray-400 font-bold border border-dashed border-gray-200 rounded-lg bg-white">尚未新增照片</div>
@@ -2678,7 +2691,8 @@
         const addItem = (dayIdx) => { 
           const day = tripData.value.itinerary[dayIdx];
           const isFirstItem = day.items.length === 0;
-          day.items.push({ id: generateId(), startTime: isFirstItem ? '09:00' : '', endTime: isFirstItem ? '09:00' : '', activity: '', stay: 0, showMenu: false, images: false, tempImageUrl: '', isImportant: false, category: '🔵' }); 
+          // 新增行程時給予預設對焦點 focus: 'center'
+          day.items.push({ id: generateId(), startTime: isFirstItem ? '09:00' : '', endTime: isFirstItem ? '09:00' : '', activity: '', stay: 0, showMenu: false, images: false, tempImageUrl: '', isImportant: false, category: '🔵', focus: 'center' }); 
           if (!isFirstItem) { day.transit.push({ method: '地鐵/捷運', duration: 30, customMethod: '' }); }
           recalculateDay(dayIdx); 
         };
@@ -2719,6 +2733,21 @@
         const removeImage = (dayIdx, itemIdx, imgIdx) => {
             const item = tripData.value.itinerary[dayIdx].items[itemIdx];
             if (item.images) { item.images.splice(imgIdx, 1); }
+        };
+
+        // 將指定照片設為首圖
+        const setAsCover = (imagesArray, index) => {
+            if (!imagesArray || index === 0 || index >= imagesArray.length) return;
+            const temp = imagesArray[0];
+            imagesArray[0] = imagesArray[index];
+            imagesArray[index] = temp;
+            saveStatus.value = '✅ 已設為首圖';
+            setTimeout(() => { if(saveStatus.value === '✅ 已設為首圖') saveStatus.value = ''; }, 2000);
+        };
+
+        // 設定圖片的裁切對焦點
+        const setFocus = (item, position) => {
+            item.focus = position;
         };
 
         const moveItemUp = (dayIdx, itemIdx) => {
@@ -2884,7 +2913,7 @@
           expenseCategories, currencyList, availableRates, updateExchangeRate,
           getCategoryIcon, getCategoryColor, getTypeLabel, getTypeColor, getMultiplier, calculateExpenseItemTotalForeign, calculateExpenseItemTotalTWD, totalExpense, expenseTotalsByCategory, pieChartStyle, addExpense, removeExpense, addExpenseDetail, removeExpenseDetail, formatCurrency,
           addItem, deleteItem, recalculateDay, userChangedStartTime, userChangedEndTime, openField,
-          handleImageUpload, handleCoverUpload, addImageUrl, removeImage, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
+          handleImageUpload, handleCoverUpload, addImageUrl, removeImage, setAsCover, setFocus, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
           activeTransitModal, openTransitModal, closeTransitModal, toggleTransitSteps, addTransitStep, removeTransitStep,
           showPassengerManager, frequentPassengers, passengerForm, isEditingPassenger, showImportModal, importTargetFlightIndex, selectedImportIds,
           openPassengerManager, editPassenger, savePassengerForm, deletePassenger, openImportModal, confirmImportPassengers, toggleImportSelection
