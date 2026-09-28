@@ -407,7 +407,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v33</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v34</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -1741,6 +1741,8 @@
           <div class="space-y-4 px-2 md:px-0 pb-16">
              <div v-for="(exp, idx) in tripData.expenses" :key="exp.id" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative group transition-all hover:shadow-md">
                 <div v-if="isEditor" class="absolute top-3 right-3 flex gap-1.5 z-20">
+                    <button v-if="!exp.isLocked" @click="moveExpenseUp(idx)" :disabled="idx === 0" class="bg-gray-100 hover:bg-gray-200 text-gray-600 w-7 h-7 rounded flex items-center justify-center text-sm transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" title="上移">⬆️</button>
+                    <button v-if="!exp.isLocked" @click="moveExpenseDown(idx)" :disabled="idx === tripData.expenses.length - 1" class="bg-gray-100 hover:bg-gray-200 text-gray-600 w-7 h-7 rounded flex items-center justify-center text-sm transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" title="下移">⬇️</button>
                     <button v-if="exp.isLocked" @click="exp.isLocked = false" class="bg-gray-100 hover:bg-gray-200 text-gray-600 w-7 h-7 rounded flex items-center justify-center text-sm transition-colors shadow-sm" title="編輯">✏️</button>
                     <button v-if="!exp.isLocked" @click="exp.isLocked = true" class="bg-yellow-50 text-yellow-600 border border-yellow-200 hover:bg-yellow-100 w-7 h-7 rounded flex items-center justify-center text-sm transition-colors shadow-sm" title="完成">💾</button>
                     <button @click="removeExpense(idx)" class="bg-gray-100 hover:bg-red-500 text-gray-400 hover:text-white w-7 h-7 rounded flex items-center justify-center text-sm transition-colors shadow-sm" title="刪除">✕</button>
@@ -2273,6 +2275,8 @@
         
         const updateExchangeRate = (exp) => { exp.exchangeRate = availableRates.value[exp.currency] || 1; };
         const removeExpense = (idx) => { customConfirm("確定要刪除這筆花費紀錄嗎？", () => { tripData.value.expenses.splice(idx, 1); }); };
+        const moveExpenseUp = (idx) => { if (idx > 0) { const item = tripData.value.expenses.splice(idx, 1)[0]; tripData.value.expenses.splice(idx - 1, 0, item); } };
+        const moveExpenseDown = (idx) => { if (idx < tripData.value.expenses.length - 1) { const item = tripData.value.expenses.splice(idx, 1)[0]; tripData.value.expenses.splice(idx + 1, 0, item); } };
         const addExpenseDetail = (exp) => { exp.details.push({ id: generateId(), type: 'adult', price: '' }); };
         const removeExpenseDetail = (exp, dIdx) => { customConfirm("確定要刪除這個花費對象嗎？", () => { exp.details.splice(dIdx, 1); }); };
         const formatCurrency = (val, currencyCode = 'TWD') => {
@@ -2913,7 +2917,7 @@
           addTransport, removeTransport, moveTransportUp, moveTransportDown, addAccommodation, removeAccommodation, moveAccommodationUp, moveAccommodationDown, getHotelGradient,
           addLuggageCategory, removeLuggageCategory, addLuggageItem, removeLuggageItem, initDefaultLuggage,
           expenseCategories, currencyList, availableRates, updateExchangeRate,
-          getCategoryIcon, getCategoryColor, getTypeLabel, getTypeColor, getMultiplier, calculateExpenseItemTotalForeign, calculateExpenseItemTotalTWD, totalExpense, expenseTotalsByCategory, pieChartStyle, addExpense, removeExpense, addExpenseDetail, removeExpenseDetail, formatCurrency,
+          getCategoryIcon, getCategoryColor, getTypeLabel, getTypeColor, getMultiplier, calculateExpenseItemTotalForeign, calculateExpenseItemTotalTWD, totalExpense, expenseTotalsByCategory, pieChartStyle, addExpense, removeExpense, moveExpenseUp, moveExpenseDown, addExpenseDetail, removeExpenseDetail, formatCurrency,
           addItem, deleteItem, recalculateDay, userChangedStartTime, userChangedEndTime, openField,
           handleImageUpload, handleCoverUpload, addImageUrl, removeImage, setAsCover, setFocus, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
           activeTransitModal, openTransitModal, closeTransitModal, toggleTransitSteps, addTransitStep, removeTransitStep,
