@@ -407,7 +407,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v35</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v37</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -2753,6 +2753,20 @@
             if (item.images) { item.images.splice(imgIdx, 1); }
         };
 
+        // 通用：加入圖片網址到模組項目 (航班、交通、住宿)
+        const addImageUrlToItem = (item) => {
+            if (item.tempImageUrl && item.tempImageUrl.trim() !== '') {
+                if (!item.images) item.images = [];
+                item.images.push(item.tempImageUrl.trim());
+                item.tempImageUrl = '';
+            }
+        };
+
+        // 通用：從模組項目移除指定圖片 (航班、交通、住宿)
+        const removeImageFromItem = (item, imgIdx) => {
+            if (item.images) { item.images.splice(imgIdx, 1); }
+        };
+
         // 將指定照片設為首圖
         const setAsCover = (imagesArray, index) => {
             if (!imagesArray || index === 0 || index >= imagesArray.length) return;
@@ -2931,7 +2945,7 @@
           expenseCategories, currencyList, availableRates, updateExchangeRate,
           getCategoryIcon, getCategoryColor, getTypeLabel, getTypeColor, getMultiplier, calculateExpenseItemTotalForeign, calculateExpenseItemTotalTWD, totalExpense, expenseTotalsByCategory, pieChartStyle, addExpense, removeExpense, moveExpenseUp, moveExpenseDown, addExpenseDetail, removeExpenseDetail, formatCurrency,
           addItem, deleteItem, recalculateDay, userChangedStartTime, userChangedEndTime, openField,
-          handleImageUpload, handleCoverUpload, addImageUrl, removeImage, setAsCover, setFocus, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
+          handleImageUpload, handleCoverUpload, addImageUrl, addImageUrlToItem, removeImage, removeImageFromItem, setAsCover, setFocus, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
           activeTransitModal, openTransitModal, closeTransitModal, toggleTransitSteps, addTransitStep, removeTransitStep,
           showPassengerManager, frequentPassengers, passengerForm, isEditingPassenger, showImportModal, importTargetFlightIndex, selectedImportIds,
           openPassengerManager, editPassenger, savePassengerForm, deletePassenger, openImportModal, confirmImportPassengers, toggleImportSelection
