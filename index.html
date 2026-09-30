@@ -407,7 +407,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v37</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v38</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -1000,7 +1000,6 @@
           <div class="flex justify-between items-center mb-2 md:mb-4 px-2 md:px-0">
             <div>
               <h2 class="text-xl md:text-2xl font-black text-gray-800">✈️ 航班資訊總覽</h2>
-              <p class="text-[10px] md:text-xs text-gray-500 font-bold mt-1">統一管理您的班機細節與同行旅客清單</p>
             </div>
             <button v-if="isEditor" @click="addFlight" class="bg-blue-500 hover:bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow transition-all flex items-center gap-1">
               <span class="text-lg leading-none">+</span> <span class="hidden md:inline">新增航班</span>
@@ -1186,7 +1185,6 @@
           <div class="flex justify-between items-center mb-2 md:mb-4 px-2 md:px-0">
             <div>
               <h2 class="text-xl md:text-2xl font-black text-gray-800">🚅 交通票券與租車</h2>
-              <p class="text-[10px] md:text-xs text-gray-500 font-bold mt-1">日期區間自動計算對應 Day，並顯示於行程總覽</p>
             </div>
             <button v-if="isEditor" @click="addTransport" class="bg-teal-500 hover:bg-teal-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow transition-all flex items-center gap-1">
               <span class="text-lg leading-none">+</span> <span class="hidden md:inline">新增憑證</span>
@@ -1483,13 +1481,12 @@
 
         <!-- ==================== 【住宿模組 (維持原樣保護安全)】 ==================== -->
         <div v-if="currentView === '住宿'" class="space-y-4">
-          <div class="flex justify-between items-center mb-2 md:mb-4 px-2 md:px-0">
+          <div class="flex justify-between items-center mb-2 px-2 md:px-0">
             <div>
               <h2 class="text-xl md:text-2xl font-black text-gray-800">🏨 飯店與住宿</h2>
-              <p class="text-[10px] md:text-xs text-gray-500 font-bold mt-1">高級憑證風：上傳的第一張照片將自動成為滿版封面</p>
             </div>
-            <button v-if="isEditor" @click="addAccommodation" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow transition-all flex items-center gap-1">
-              <span class="text-lg leading-none">+</span> <span class="hidden md:inline">新增住宿</span>
+            <button v-if="isEditor" @click="addAccommodation" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow transition-all flex items-center gap-1">
+              <span class="text-base leading-none">+</span> <span class="hidden md:inline">新增住宿</span>
             </button>
           </div>
 
@@ -1497,126 +1494,124 @@
             <p class="text-gray-400 font-bold">尚未新增任何飯店資訊</p>
           </div>
 
-          <div class="grid grid-cols-1 gap-8 px-2 md:px-0">
-            <div v-for="(hotel, idx) in tripData.accommodations" :key="hotel.id" class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden flex flex-col hover:shadow-2xl transition-all duration-300 relative">
+          <div class="grid grid-cols-1 gap-5 px-2 md:px-0">
+            <div v-for="(hotel, idx) in tripData.accommodations" :key="hotel.id" class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden flex flex-col hover:shadow-lg transition-all duration-300 relative">
               
-              <!-- 頂部封面區 (Cover Section) -->
-              <div class="relative w-full h-56 md:h-72 bg-cover bg-center" :class="(!hotel.images || hotel.images.length === 0) ? getHotelGradient(idx) : ''" :style="hotel.images && hotel.images.length > 0 ? { backgroundImage: `url(${hotel.images[0]})` } : {}">
-                 <!-- 漸層暗色遮罩，確保白色文字清晰可見 -->
-                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+              <!-- 頂部封面區 (Cover Section) - 手機高度縮減為 h-40，電腦 h-56 -->
+              <div class="relative w-full h-40 md:h-56 bg-cover bg-center" :class="(!hotel.images || hotel.images.length === 0) ? getHotelGradient(idx) : ''" :style="hotel.images && hotel.images.length > 0 ? { backgroundImage: `url(${hotel.images[0]})` } : {}">
+                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                  
                  <!-- 右上角編輯控制項 -->
-                 <div v-if="isEditor" class="absolute top-4 right-4 flex gap-1.5 z-20">
-                    <button @click="moveAccommodationUp(idx)" :disabled="idx === 0" class="bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="上移">⬆️</button>
-                    <button @click="moveAccommodationDown(idx)" :disabled="idx === tripData.accommodations.length - 1" class="bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="下移">⬇️</button>
-                    <button @click="removeAccommodation(idx)" class="bg-white/20 hover:bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm backdrop-blur-sm transition-colors" title="刪除">✕</button>
+                 <div v-if="isEditor" class="absolute top-2 right-2 flex gap-1 z-20">
+                    <button @click="moveAccommodationUp(idx)" :disabled="idx === 0" class="bg-white/20 hover:bg-white/40 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs backdrop-blur-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="上移">⬆️</button>
+                    <button @click="moveAccommodationDown(idx)" :disabled="idx === tripData.accommodations.length - 1" class="bg-white/20 hover:bg-white/40 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs backdrop-blur-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="下移">⬇️</button>
+                    <button @click="removeAccommodation(idx)" class="bg-white/20 hover:bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs backdrop-blur-sm transition-colors" title="刪除">✕</button>
                  </div>
 
-                 <!-- 封面文字資訊 (飯店名稱與訂單代號) -->
-                 <div class="absolute bottom-0 left-0 w-full p-5 md:p-8 text-white flex flex-col gap-2">
-                    <div class="flex flex-col md:flex-row md:justify-between md:items-end gap-3 md:gap-6">
+                 <!-- 封面文字資訊 -->
+                 <div class="absolute bottom-0 left-0 w-full p-3.5 md:p-5 text-white flex flex-col gap-1">
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-end gap-1 md:gap-4">
                         <div class="flex-1 min-w-0">
-                            <input v-if="isEditor" v-model="hotel.name" class="w-full text-2xl md:text-4xl font-black bg-transparent outline-none text-white placeholder-white/50 truncate drop-shadow-md" placeholder="輸入飯店名稱 (如: Four Seasons)">
-                            <a v-else-if="hotel.nameLink" :href="hotel.nameLink" target="_blank" class="text-2xl md:text-4xl font-black hover:underline truncate block drop-shadow-md">{{ hotel.name || '未填寫飯店名稱' }} <span class="text-sm md:text-lg">🔗</span></a>
-                            <h3 v-else class="text-2xl md:text-4xl font-black truncate drop-shadow-md">{{ hotel.name || '未填寫飯店名稱' }}</h3>
+                            <input v-if="isEditor" v-model="hotel.name" class="w-full text-xl md:text-2xl font-black bg-transparent outline-none text-white placeholder-white/50 truncate drop-shadow" placeholder="輸入飯店名稱">
+                            <a v-else-if="hotel.nameLink" :href="hotel.nameLink" target="_blank" class="text-xl md:text-2xl font-black hover:underline truncate block drop-shadow">{{ hotel.name || '未填寫飯店名稱' }} <span class="text-xs md:text-sm">🔗</span></a>
+                            <h3 v-else class="text-xl md:text-2xl font-black truncate drop-shadow">{{ hotel.name || '未填寫飯店名稱' }}</h3>
                             
-                            <input v-if="isEditor" v-model="hotel.nameLink" class="w-full text-xs md:text-sm outline-none bg-white/20 border border-white/30 rounded px-2 py-1 text-white placeholder-white/60 mt-2 backdrop-blur-sm focus:bg-white/30" placeholder="官網或訂房平台超連結">
+                            <input v-if="isEditor" v-model="hotel.nameLink" class="w-full text-[11px] outline-none bg-white/20 border border-white/30 rounded px-2 py-0.5 text-white placeholder-white/60 mt-1 backdrop-blur-sm" placeholder="官網超連結">
                         </div>
-                        <div class="flex items-center md:items-end gap-2 md:flex-col md:gap-1 shrink-0">
-                            <span class="text-[10px] md:text-xs text-white/80 uppercase tracking-widest font-bold">Booking Ref</span>
-                            <input v-if="isEditor" v-model="hotel.bookingRef" class="w-28 md:w-32 text-sm md:text-base font-mono font-black bg-white/20 border border-white/30 rounded px-2 py-1 outline-none text-left md:text-right placeholder-white/50 backdrop-blur-sm focus:bg-white/30" placeholder="訂房代號">
-                            <div v-else class="text-sm md:text-base font-mono font-black bg-white/20 border border-white/30 rounded px-2 py-1 inline-block backdrop-blur-sm">{{ hotel.bookingRef || '無代號' }}</div>
+                        <div class="flex items-center md:items-end gap-1.5 md:flex-col md:gap-0.5 shrink-0">
+                            <span class="text-[9px] text-white/80 uppercase tracking-widest font-bold">Booking Ref</span>
+                            <input v-if="isEditor" v-model="hotel.bookingRef" class="w-24 text-xs font-mono font-black bg-white/20 border border-white/30 rounded px-1.5 py-0.5 outline-none text-left md:text-right placeholder-white/50 backdrop-blur-sm" placeholder="訂房代號">
+                            <div v-else class="text-xs font-mono font-black bg-white/20 border border-white/30 rounded px-1.5 py-0.5 inline-block backdrop-blur-sm">{{ hotel.bookingRef || '無代號' }}</div>
                         </div>
                     </div>
                  </div>
               </div>
 
-              <!-- 中間重點資訊區 (入住日期與時間) -->
-              <div class="px-5 md:px-8 py-6 md:py-8 bg-white flex flex-col md:flex-row gap-6 md:gap-10 border-b border-gray-100">
+              <!-- 中間重點資訊區 (日期與時間) - 壓縮上下 Padding -->
+              <div class="px-3.5 md:px-5 py-3.5 md:py-4 bg-white flex flex-col md:flex-row gap-3.5 md:gap-6 border-b border-gray-100">
                   <!-- 日期區塊 -->
-                  <div class="flex-1 bg-gray-50 rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center relative shadow-sm">
-                      <p class="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-widest mb-1.5">Stay Period 入住期間</p>
-                      <input v-if="isEditor" type="text" v-model="hotel.dateRange" placeholder="點擊選擇起訖日期" class="range-date-picker w-full text-center text-lg md:text-xl font-black text-gray-900 bg-transparent cursor-pointer outline-none placeholder-gray-300">
-                      <div v-else class="text-lg md:text-xl font-black text-gray-900 tracking-wide">{{ hotel.dateRange || '尚未設定日期' }}</div>
+                  <div class="flex-1 bg-gray-50 rounded-xl p-3 border border-gray-100 flex flex-col items-center justify-center relative">
+                      <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Stay Period 入住期間</p>
+                      <input v-if="isEditor" type="text" v-model="hotel.dateRange" placeholder="點擊選擇起訖日期" class="range-date-picker w-full text-center text-sm md:text-base font-black text-gray-900 bg-transparent cursor-pointer outline-none placeholder-gray-300">
+                      <div v-else class="text-sm md:text-base font-black text-gray-900 tracking-wide">{{ hotel.dateRange || '尚未設定日期' }}</div>
                       
-                      <div class="flex justify-center gap-2 mt-3">
-                          <span class="text-[10px] md:text-xs font-bold bg-indigo-100 text-indigo-700 rounded-full px-3 py-1">{{ calculateNights(hotel.dateRange) }}</span>
-                          <span class="text-[10px] md:text-xs font-bold bg-gray-200 text-gray-700 rounded-full px-3 py-1" v-if="calculateRelativeDays(hotel.dateRange)">{{ calculateRelativeDays(hotel.dateRange).text }}</span>
+                      <div class="flex justify-center gap-1.5 mt-1.5">
+                          <span class="text-[9px] font-bold bg-indigo-50 text-indigo-700 rounded-full px-2 py-0.5">{{ calculateNights(hotel.dateRange) }}</span>
+                          <span class="text-[9px] font-bold bg-gray-100 text-gray-600 rounded-full px-2 py-0.5" v-if="calculateRelativeDays(hotel.dateRange)">{{ calculateRelativeDays(hotel.dateRange).text }}</span>
                       </div>
                   </div>
 
-                  <!-- 時間區塊 -->
-                  <div class="flex-1 flex gap-4 md:gap-8 items-center justify-center">
+                  <!-- 時間區塊 (字體從 5xl 縮小為 3xl，讓高度緊湊) -->
+                  <div class="flex-1 flex gap-3 items-center justify-center">
                       <div class="flex flex-col items-center justify-center w-full">
-                          <span class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Check-in</span>
-                          <input v-if="isEditor" type="text" v-model="hotel.checkInTime" class="time-picker w-full text-center text-4xl md:text-5xl font-black text-gray-800 bg-transparent outline-none cursor-pointer placeholder-gray-200" placeholder="15:00">
-                          <span v-else class="text-4xl md:text-5xl font-black text-gray-800 tracking-tighter">{{ hotel.checkInTime || '--:--' }}</span>
+                          <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Check-in</span>
+                          <input v-if="isEditor" type="text" v-model="hotel.checkInTime" class="time-picker w-full text-center text-2xl md:text-3xl font-black text-gray-800 bg-transparent outline-none cursor-pointer placeholder-gray-200" placeholder="15:00">
+                          <span v-else class="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">{{ hotel.checkInTime || '--:--' }}</span>
                       </div>
-                      <div class="w-px h-16 bg-gray-200"></div>
+                      <div class="w-px h-10 bg-gray-200"></div>
                       <div class="flex flex-col items-center justify-center w-full">
-                          <span class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Check-out</span>
-                          <input v-if="isEditor" type="text" v-model="hotel.checkOutTime" class="time-picker w-full text-center text-4xl md:text-5xl font-black text-gray-800 bg-transparent outline-none cursor-pointer placeholder-gray-200" placeholder="11:00">
-                          <span v-else class="text-4xl md:text-5xl font-black text-gray-800 tracking-tighter">{{ hotel.checkOutTime || '--:--' }}</span>
+                          <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Check-out</span>
+                          <input v-if="isEditor" type="text" v-model="hotel.checkOutTime" class="time-picker w-full text-center text-2xl md:text-3xl font-black text-gray-800 bg-transparent outline-none cursor-pointer placeholder-gray-200" placeholder="11:00">
+                          <span v-else class="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">{{ hotel.checkOutTime || '--:--' }}</span>
                       </div>
                   </div>
               </div>
 
-              <!-- 底部附加資訊與相簿區 (Info & Gallery) -->
-              <div class="p-5 md:p-8 bg-gray-50/50 flex flex-col gap-5">
+              <!-- 底部附加資訊與相簿區 (精簡內距) -->
+              <div class="p-3.5 md:p-5 bg-gray-50/50 flex flex-col gap-3.5">
                   <!-- 地址與備註網格 -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <!-- 地址 -->
-                      <div class="bg-white rounded-2xl p-4 md:p-5 border border-gray-100 shadow-sm flex gap-3 md:gap-4 items-start hover:shadow-md transition-shadow">
-                          <div class="text-2xl mt-0.5 text-gray-300">📍</div>
+                      <div class="bg-white rounded-xl p-3 border border-gray-100 shadow-sm flex gap-2.5 items-start">
+                          <div class="text-lg mt-0.5 text-gray-300">📍</div>
                           <div class="flex-1 min-w-0">
-                              <p class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Address 地址</p>
-                              <input v-if="isEditor" v-model="hotel.address" class="w-full text-sm md:text-base font-bold text-gray-800 bg-transparent outline-none placeholder-gray-300 border-b border-dashed border-gray-200 focus:border-indigo-400 pb-1" placeholder="輸入飯店完整地址">
-                              <p v-else class="text-sm md:text-base font-bold text-gray-800">{{ hotel.address || '未提供地址' }}</p>
+                              <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Address 地址</p>
+                              <input v-if="isEditor" v-model="hotel.address" class="w-full text-xs md:text-sm font-bold text-gray-800 bg-transparent outline-none placeholder-gray-300 border-b border-dashed border-gray-200 focus:border-indigo-400 pb-0.5" placeholder="輸入飯店完整地址">
+                              <p v-else class="text-xs md:text-sm font-bold text-gray-800 truncate">{{ hotel.address || '未提供地址' }}</p>
                               
-                              <div v-if="isEditor" class="mt-2.5 flex items-center gap-1.5 bg-gray-50 rounded-lg p-1.5 border border-gray-100">
-                                  <span class="text-xs">🔗</span>
-                                  <input v-model="hotel.addressLink" class="w-full text-[10px] md:text-xs text-blue-500 font-bold bg-transparent outline-none placeholder-blue-300" placeholder="貼上 Google Maps 連結">
+                              <div v-if="isEditor" class="mt-2 flex items-center gap-1 bg-gray-50 rounded p-1 border border-gray-100">
+                                  <span class="text-[10px]">🔗</span>
+                                  <input v-model="hotel.addressLink" class="w-full text-[10px] text-blue-500 font-bold bg-transparent outline-none placeholder-blue-300" placeholder="Google Maps 連結">
                               </div>
-                              <a v-else-if="hotel.addressLink" :href="hotel.addressLink" target="_blank" class="inline-flex items-center gap-1 mt-2.5 text-[11px] md:text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors">🗺️ 開啟地圖導航</a>
+                              <a v-else-if="hotel.addressLink" :href="hotel.addressLink" target="_blank" class="inline-flex items-center gap-1 mt-2 text-[10px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition-colors">🗺️ 開啟地圖導航</a>
                           </div>
                       </div>
 
                       <!-- 備註 -->
-                      <div class="bg-white rounded-2xl p-4 md:p-5 border border-gray-100 shadow-sm flex gap-3 md:gap-4 items-start hover:shadow-md transition-shadow">
-                          <div class="text-2xl mt-0.5 text-gray-300">📝</div>
+                      <div class="bg-white rounded-xl p-3 border border-gray-100 shadow-sm flex gap-2.5 items-start">
+                          <div class="text-lg mt-0.5 text-gray-300">📝</div>
                           <div class="flex-1 min-w-0">
-                              <p class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Notes 備註資訊</p>
-                              <textarea v-if="isEditor" v-model="hotel.memo" rows="2" class="w-full text-sm md:text-base font-bold text-gray-700 bg-gray-50 border border-gray-100 rounded-lg p-2 outline-none resize-none placeholder-gray-300 focus:border-indigo-400" placeholder="輸入備註 (例如：已付清、含早餐、需加床...)"></textarea>
-                              <p v-else class="text-sm md:text-base font-bold text-gray-700 whitespace-pre-line">{{ hotel.memo || '無特別備註' }}</p>
+                              <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Notes 備註資訊</p>
+                              <textarea v-if="isEditor" v-model="hotel.memo" rows="2" class="w-full text-xs md:text-sm font-bold text-gray-700 bg-gray-50 border border-gray-100 rounded p-1.5 outline-none resize-none placeholder-gray-300 focus:border-indigo-400" placeholder="輸入備註..."></textarea>
+                              <p v-else class="text-xs md:text-sm font-bold text-gray-700 whitespace-pre-line line-clamp-3">{{ hotel.memo || '無特別備註' }}</p>
                           </div>
                       </div>
                   </div>
 
-                  <!-- 住宿相簿區 -->
-                  <div v-if="isEditor || (hotel.images && hotel.images.length > 0)" class="mt-2">
-                      <div class="flex items-center justify-between mb-3">
-                          <span class="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">Gallery 住宿相簿</span>
-                          <span v-if="hotel.images" class="bg-gray-200 text-gray-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold">{{ hotel.images.length }} 張照片</span>
+                  <!-- 住宿相簿區 (遵循當兩張以上才在唯讀模式顯示的邏輯) -->
+                  <div v-if="isEditor || (hotel.images && hotel.images.length > 1)" class="mt-1">
+                      <div class="flex items-center justify-between mb-2">
+                          <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Gallery 住宿相簿</span>
+                          <span v-if="hotel.images" class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-[9px] font-bold">{{ hotel.images.length }} 張照片</span>
                       </div>
                       
-                      <div v-if="hotel.images && hotel.images.length > 0" class="flex overflow-x-auto gap-3 hide-scrollbar pb-2">
+                      <div v-if="hotel.images && hotel.images.length > 0" class="flex overflow-x-auto gap-2 hide-scrollbar pb-1">
                           <div v-for="(imgSrc, imgIdx) in hotel.images" :key="imgIdx" class="relative group shrink-0">
-                              <img :src="imgSrc" @click="activeImage = { list: hotel.images, index: imgIdx }" class="rounded-xl h-24 md:h-32 w-32 md:w-40 object-cover border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
-                              <button v-if="isEditor" @click="removeImageFromItem(hotel, imgIdx)" class="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
-                              <button v-if="isEditor && imgIdx > 0" @click="setAsCover(hotel.images, imgIdx)" class="absolute bottom-2 left-2 bg-black/70 hover:bg-yellow-500 text-white px-2 py-1 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-sm flex items-center gap-1">⭐ 設為首圖</button>
+                              <img :src="imgSrc" @click="activeImage = { list: hotel.images, index: imgIdx }" class="rounded-lg h-16 w-20 md:h-20 md:w-28 object-cover border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+                              <button v-if="isEditor" @click="removeImageFromItem(hotel, imgIdx)" class="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
+                              <button v-if="isEditor && imgIdx > 0" @click="setAsCover(hotel.images, imgIdx)" class="absolute bottom-1 left-1 bg-black/70 hover:bg-yellow-500 text-white px-1 py-0.5 rounded text-[8px] font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">⭐ 首圖</button>
                           </div>
                       </div>
-                      <div v-else class="text-center py-6 text-xs text-gray-400 font-bold border-2 border-dashed border-gray-200 rounded-xl bg-white">尚未新增照片 (上傳的第一張將自動成為滿版封面)</div>
                       
                       <!-- 上傳輸入區 (僅編輯模式顯示) -->
-                      <div v-if="isEditor" class="flex flex-col md:flex-row gap-2 mt-3">
-                          <div class="flex flex-1 gap-2 bg-white border border-gray-200 rounded-lg p-1.5 shadow-sm">
-                              <input type="text" v-model="hotel.tempImageUrl" placeholder="貼上圖片網址" class="flex-1 bg-transparent px-2 text-xs md:text-sm font-bold outline-none placeholder-gray-300">
-                              <button @click="addImageUrlToItem(hotel)" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors">加入</button>
+                      <div v-if="isEditor" class="flex flex-col md:flex-row gap-1.5 mt-2">
+                          <div class="flex flex-1 gap-1.5 bg-white border border-gray-200 rounded p-1 shadow-sm">
+                              <input type="text" v-model="hotel.tempImageUrl" placeholder="貼上圖片網址" class="flex-1 bg-transparent px-1.5 text-xs font-bold outline-none placeholder-gray-300">
+                              <button @click="addImageUrlToItem(hotel)" class="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1 rounded text-xs font-bold transition-colors">加入</button>
                           </div>
-                          <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1.5 shadow-sm px-3 w-full md:w-auto">
-                              <span class="text-xs text-gray-500 font-bold shrink-0">本機上傳:</span>
-                              <input type="file" accept="image/*" multiple @change="handleImageUpload($event, hotel)" class="text-xs text-gray-600 w-full md:w-48 cursor-pointer">
+                          <div class="flex items-center gap-1 bg-white border border-gray-200 rounded p-1 shadow-sm px-2 w-full md:w-auto">
+                              <span class="text-[10px] text-gray-500 font-bold shrink-0">本機上傳:</span>
+                              <input type="file" accept="image/*" multiple @change="handleImageUpload($event, hotel)" class="text-[10px] text-gray-600 w-full md:w-36 cursor-pointer">
                           </div>
                       </div>
                   </div>
@@ -1631,7 +1626,6 @@
           <div class="flex justify-between items-center mb-2 md:mb-4 px-2 md:px-0">
             <div>
               <h2 class="text-xl md:text-2xl font-black text-gray-800">🎒 行李清單</h2>
-              <p class="text-[10px] md:text-xs text-gray-500 font-bold mt-1">輕鬆管理打包清單，勾選確認不漏帶</p>
             </div>
             <div v-if="isEditor" class="flex gap-2">
               <button v-if="!tripData.luggage || tripData.luggage.length === 0" @click="initDefaultLuggage" class="bg-gray-800 hover:bg-gray-900 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow transition-all">
