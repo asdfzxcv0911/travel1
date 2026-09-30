@@ -13,6 +13,11 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/zh-tw.js"></script>
 
+  <!-- Google Fonts: Patrick Hand for Cute Booking Ref -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+
   <!-- App 化設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -414,7 +419,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v42</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v43</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -637,9 +642,24 @@
            <!-- Body: Booking -->
            <div v-if="activeAccModalType === 'booking'" class="p-5 overflow-y-auto hide-scrollbar flex-1 bg-gray-50 flex flex-col gap-4">
               <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">訂房代號 Booking Ref</label>
-                 <input v-if="isEditor" v-model="tripData.accommodations[activeAccHotelIdx].bookingRef" placeholder="例如：123456789" class="w-full font-black text-emerald-700 font-mono bg-emerald-50 border border-emerald-100 rounded-lg p-2 outline-none focus:border-emerald-400 text-lg uppercase">
-                 <p v-else class="font-black text-emerald-700 font-mono text-xl">{{ tripData.accommodations[activeAccHotelIdx].bookingRef || '無代號' }}</p>
+                 <div class="flex items-center justify-between mb-1">
+                    <label v-if="!tripData.accommodations[activeAccHotelIdx].bookingLink && !isEditor" class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">訂房代號 Booking Ref</label>
+                    <a v-else-if="tripData.accommodations[activeAccHotelIdx].bookingLink" :href="tripData.accommodations[activeAccHotelIdx].bookingLink" target="_blank" class="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 hover:bg-emerald-100 transition-colors w-max">
+                       🔗 開啟訂房憑證連結
+                    </a>
+                    <label v-else class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">訂房代號 Booking Ref</label>
+                    
+                    <button v-if="isEditor" @click="tripData.accommodations[activeAccHotelIdx].editBookingLink = !tripData.accommodations[activeAccHotelIdx].editBookingLink" class="text-[10px] text-gray-400 hover:text-emerald-500 font-bold flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
+                       🔗 連結
+                    </button>
+                 </div>
+                 
+                 <div v-if="isEditor && tripData.accommodations[activeAccHotelIdx].editBookingLink" class="mb-3 animate-fade-in origin-top">
+                    <input v-model="tripData.accommodations[activeAccHotelIdx].bookingLink" placeholder="貼上 Agoda/Booking 等憑證網址..." class="w-full text-xs bg-gray-50 border border-gray-200 rounded p-1.5 outline-none focus:border-emerald-400 text-gray-600 font-mono">
+                 </div>
+
+                 <input v-if="isEditor" v-model="tripData.accommodations[activeAccHotelIdx].bookingRef" placeholder="例如：123456789" class="w-full font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-2 outline-none focus:border-emerald-400 text-2xl md:text-3xl uppercase tracking-widest text-center shadow-inner" style="font-family: 'Patrick Hand', cursive;">
+                 <p v-else class="font-black text-emerald-700 text-3xl md:text-4xl text-center py-2 tracking-widest drop-shadow-sm" style="font-family: 'Patrick Hand', cursive;">{{ tripData.accommodations[activeAccHotelIdx].bookingRef || '無代號' }}</p>
               </div>
               <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                  <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">設施與服務 Amenities</label>
@@ -1889,6 +1909,9 @@
             activeAccHotelIdx.value = idx;
             
             let acc = tripData.value.accommodations[idx];
+            // 初始化新增的編輯連結狀態
+            if (acc.editBookingLink === undefined) acc.editBookingLink = false;
+            
             if (!acc.amenities) {
                 acc.amenities = { breakfast: false, breakfastInfo: '', hasParking: false, parkingInfo: '', wifi: false, luggage: false };
             } else {
@@ -2711,7 +2734,7 @@
         const addAccommodation = () => { 
             tripData.value.accommodations.push({ 
                 id: generateId(), name: '', nameLink: '', stars: '5', dateRange: '', checkInTime: '15:00', checkOutTime: '11:00', 
-                address: '', addressLink: '', phone: '', bookingRef: '', memo: '',
+                address: '', addressLink: '', phone: '', bookingRef: '', bookingLink: '', editBookingLink: false, memo: '',
                 amenities: { breakfast: false, breakfastInfo: '', hasParking: false, parkingInfo: '', wifi: false, luggage: false }
             }); 
             bindDynamicPickers(); 
