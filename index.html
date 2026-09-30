@@ -414,7 +414,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v40</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v42</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -643,33 +643,45 @@
               </div>
               <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                  <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">設施與服務 Amenities</label>
-                 <div class="grid grid-cols-2 gap-3">
-                    <label class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors h-full" :class="(tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.breakfast) ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'">
-                       <input v-if="isEditor" type="checkbox" v-model="tripData.accommodations[activeAccHotelIdx].amenities.breakfast" class="accent-emerald-500 w-4 h-4 shrink-0">
-                       <span v-else class="text-emerald-500 shrink-0">{{ (tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.breakfast) ? '✅' : '❌' }}</span>
-                       <span class="font-bold text-sm text-gray-700">☕ 包含早餐</span>
-                    </label>
+                 <div class="grid grid-cols-2 gap-3 items-start">
+                    <!-- V42 升級版：早餐資訊 (智慧變身標題) -->
+                    <div class="flex flex-col gap-2 p-2 rounded-lg border transition-all duration-300" :class="(tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.breakfast) ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'">
+                       <label class="flex items-center gap-2 cursor-pointer h-[24px]">
+                          <input v-if="isEditor" type="checkbox" v-model="tripData.accommodations[activeAccHotelIdx].amenities.breakfast" class="accent-emerald-500 w-4 h-4 shrink-0">
+                          <span v-else class="text-emerald-500 shrink-0">{{ (tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.breakfast) ? '✅' : '❌' }}</span>
+                          <span class="font-bold text-sm text-gray-700">
+                             {{ (tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.breakfast) ? (tripData.accommodations[activeAccHotelIdx].amenities.breakfastInfo ? '☕ 早餐資訊' : '☕ 包含早餐') : '☕ 早餐資訊' }}
+                          </span>
+                       </label>
+                       <!-- 編輯模式下有勾選就會展開供輸入；唯讀模式下有打字才會展開 -->
+                       <div v-show="tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.breakfast && (isEditor || tripData.accommodations[activeAccHotelIdx].amenities.breakfastInfo)" class="w-full animate-fade-in origin-top">
+                          <input v-if="isEditor" type="text" v-model="tripData.accommodations[activeAccHotelIdx].amenities.breakfastInfo" placeholder="如: 二樓自助吧 / 07:00-10:00" class="w-full bg-white border border-gray-200 rounded px-2 py-1.5 text-xs outline-none focus:border-emerald-400 font-bold text-gray-700 shadow-sm transition-colors">
+                          <span v-else class="block font-bold text-sm text-emerald-600 truncate px-1" :title="tripData.accommodations[activeAccHotelIdx].amenities.breakfastInfo">{{ tripData.accommodations[activeAccHotelIdx].amenities.breakfastInfo }}</span>
+                       </div>
+                    </div>
                     
-                    <!-- V41 升級版：停車資訊 (動態展開) -->
+                    <!-- V42 升級版：停車資訊 (智慧變身標題) -->
                     <div class="flex flex-col gap-2 p-2 rounded-lg border transition-all duration-300" :class="(tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.hasParking) ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'">
                        <label class="flex items-center gap-2 cursor-pointer h-[24px]">
                           <input v-if="isEditor" type="checkbox" v-model="tripData.accommodations[activeAccHotelIdx].amenities.hasParking" class="accent-emerald-500 w-4 h-4 shrink-0">
                           <span v-else class="text-emerald-500 shrink-0">{{ (tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.hasParking) ? '✅' : '❌' }}</span>
-                          <span class="font-bold text-sm text-gray-700">🅿️ 停車資訊</span>
+                          <span class="font-bold text-sm text-gray-700">
+                             {{ (tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.hasParking) ? (tripData.accommodations[activeAccHotelIdx].amenities.parkingInfo ? '🅿️ 停車資訊' : '🅿️ 免費停車') : '🅿️ 停車資訊' }}
+                          </span>
                        </label>
-                       <!-- 勾選後才展開的輸入框/顯示區 -->
-                       <div v-show="tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.hasParking" class="w-full animate-fade-in origin-top">
-                          <input v-if="isEditor" type="text" v-model="tripData.accommodations[activeAccHotelIdx].amenities.parkingInfo" placeholder="如: 免費 / 300元一天" class="w-full bg-white border border-gray-200 rounded px-2 py-1.5 text-xs outline-none focus:border-emerald-400 font-bold text-gray-700 shadow-sm transition-colors">
-                          <span v-else class="block font-bold text-sm text-emerald-600 truncate px-1" :title="tripData.accommodations[activeAccHotelIdx].amenities.parkingInfo">{{ tripData.accommodations[activeAccHotelIdx].amenities.parkingInfo || '未提供細節' }}</span>
+                       <!-- 編輯模式下有勾選就會展開供輸入；唯讀模式下有打字才會展開 -->
+                       <div v-show="tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.hasParking && (isEditor || tripData.accommodations[activeAccHotelIdx].amenities.parkingInfo)" class="w-full animate-fade-in origin-top">
+                          <input v-if="isEditor" type="text" v-model="tripData.accommodations[activeAccHotelIdx].amenities.parkingInfo" placeholder="如: 300元/天 或 需預約" class="w-full bg-white border border-gray-200 rounded px-2 py-1.5 text-xs outline-none focus:border-emerald-400 font-bold text-gray-700 shadow-sm transition-colors">
+                          <span v-else class="block font-bold text-sm text-emerald-600 truncate px-1" :title="tripData.accommodations[activeAccHotelIdx].amenities.parkingInfo">{{ tripData.accommodations[activeAccHotelIdx].amenities.parkingInfo }}</span>
                        </div>
                     </div>
 
-                    <label class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors h-full" :class="(tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.wifi) ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'">
+                    <label class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors h-[42px]" :class="(tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.wifi) ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'">
                        <input v-if="isEditor" type="checkbox" v-model="tripData.accommodations[activeAccHotelIdx].amenities.wifi" class="accent-emerald-500 w-4 h-4 shrink-0">
                        <span v-else class="text-emerald-500 shrink-0">{{ (tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.wifi) ? '✅' : '❌' }}</span>
                        <span class="font-bold text-sm text-gray-700">📶 免費 WiFi</span>
                     </label>
-                    <label class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors h-full" :class="(tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.luggage) ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'">
+                    <label class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors h-[42px]" :class="(tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.luggage) ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'">
                        <input v-if="isEditor" type="checkbox" v-model="tripData.accommodations[activeAccHotelIdx].amenities.luggage" class="accent-emerald-500 w-4 h-4 shrink-0">
                        <span v-else class="text-emerald-500 shrink-0">{{ (tripData.accommodations[activeAccHotelIdx].amenities && tripData.accommodations[activeAccHotelIdx].amenities.luggage) ? '✅' : '❌' }}</span>
                        <span class="font-bold text-sm text-gray-700">🧳 寄放行李</span>
@@ -1875,22 +1887,35 @@
         const openAccModal = (type, idx) => {
             activeAccModalType.value = type;
             activeAccHotelIdx.value = idx;
-            // Ensure amenities object exists for backward compatibility
-            if (!tripData.value.accommodations[idx].amenities) {
-                tripData.value.accommodations[idx].amenities = { breakfast: false, hasParking: false, parkingInfo: '', wifi: false, luggage: false };
+            
+            let acc = tripData.value.accommodations[idx];
+            if (!acc.amenities) {
+                acc.amenities = { breakfast: false, breakfastInfo: '', hasParking: false, parkingInfo: '', wifi: false, luggage: false };
             } else {
-                // v41: 向下相容邏輯 (將舊版 parkingInfo 轉換為 hasParking + parkingInfo)
-                if (tripData.value.accommodations[idx].amenities.hasParking === undefined) {
-                    if (tripData.value.accommodations[idx].amenities.parkingInfo && tripData.value.accommodations[idx].amenities.parkingInfo.trim() !== '') {
-                        tripData.value.accommodations[idx].amenities.hasParking = true;
-                    } else if (tripData.value.accommodations[idx].amenities.parking === true) {
-                        tripData.value.accommodations[idx].amenities.hasParking = true;
-                        tripData.value.accommodations[idx].amenities.parkingInfo = '免費停車';
+                // v42: 向下相容邏輯 (將舊版 parkingInfo 轉換為 hasParking + parkingInfo)
+                if (acc.amenities.hasParking === undefined) {
+                    if (acc.amenities.parkingInfo && acc.amenities.parkingInfo.trim() !== '') {
+                        acc.amenities.hasParking = true;
+                        // 若舊資料直接打「免費停車」，清除之以套用新版智慧標題變身邏輯
+                        if (acc.amenities.parkingInfo.trim() === '免費停車') acc.amenities.parkingInfo = '';
+                    } else if (acc.amenities.parking === true) {
+                        acc.amenities.hasParking = true;
+                        acc.amenities.parkingInfo = '';
                     } else {
-                        tripData.value.accommodations[idx].amenities.hasParking = false;
-                        tripData.value.accommodations[idx].amenities.parkingInfo = '';
+                        acc.amenities.hasParking = false;
+                        acc.amenities.parkingInfo = '';
                     }
-                    delete tripData.value.accommodations[idx].amenities.parking;
+                    delete acc.amenities.parking;
+                } else if (acc.amenities.parkingInfo && acc.amenities.parkingInfo.trim() === '免費停車') {
+                    // 自動清除多餘的預設文字，交由智慧變身處理
+                    acc.amenities.parkingInfo = '';
+                }
+                
+                // v42: 早餐的向下相容邏輯
+                if (acc.amenities.breakfastInfo === undefined) {
+                    acc.amenities.breakfastInfo = '';
+                } else if (acc.amenities.breakfastInfo && acc.amenities.breakfastInfo.trim() === '包含早餐') {
+                    acc.amenities.breakfastInfo = '';
                 }
             }
         };
@@ -2687,7 +2712,7 @@
             tripData.value.accommodations.push({ 
                 id: generateId(), name: '', nameLink: '', stars: '5', dateRange: '', checkInTime: '15:00', checkOutTime: '11:00', 
                 address: '', addressLink: '', phone: '', bookingRef: '', memo: '',
-                amenities: { breakfast: false, hasParking: false, parkingInfo: '', wifi: false, luggage: false }
+                amenities: { breakfast: false, breakfastInfo: '', hasParking: false, parkingInfo: '', wifi: false, luggage: false }
             }); 
             bindDynamicPickers(); 
         };
