@@ -371,6 +371,10 @@
           <div class="pt-2 border-t border-gray-100">
             <label class="block mb-2 font-medium text-sm text-gray-700">啟用模組 (依旅程需求自由開關)</label>
             <div class="flex flex-wrap gap-2.5">
+              <label class="flex items-center gap-1.5 cursor-pointer bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors shadow-sm">
+                  <input type="checkbox" v-model="setupData.modules.itinerary" class="accent-[var(--theme-color)] w-4 h-4 rounded cursor-pointer">
+                  <span class="text-sm font-bold text-gray-600">📅 行程</span>
+               </label>
                <label class="flex items-center gap-1.5 cursor-pointer bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors shadow-sm">
                   <input type="checkbox" v-model="setupData.modules.flights" class="accent-[var(--theme-color)] w-4 h-4 rounded cursor-pointer">
                   <span class="text-sm font-bold text-gray-600">✈️ 航班</span>
@@ -419,7 +423,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v44</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v45</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -2018,14 +2022,14 @@
           }
         });
 
-        const setupData = ref({ name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { flights: true, transports: true, accommodations: true, luggage: true, expenses: true } });
+        const setupData = ref({ name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true } });
         
         const tripData = ref({
           ownerId: '', tripName: '未命名行程', destination: '', startDate: '', endDate: '', themeColor: '#e91e63',
           coEditors: [], companions: ['我', '盈瑜'], itinerary: [], expenses: [],
           expenseSettings: { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' },
           coverImage: '',
-          modules: { flights: true, transports: true, accommodations: true, luggage: true, expenses: true },
+          modules: { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true },
           flights: [], transports: [], accommodations: [], luggage: []
         });
 
@@ -2037,9 +2041,10 @@
         });
 
         const visibleTabs = computed(() => {
-          let currentTabs = ['行程'];
-          const m = tripData.value.modules || { flights: true, transports: true, accommodations: true, luggage: true, expenses: true };
+          let currentTabs = [];
+          const m = tripData.value.modules || { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true };
           
+          if (m.itinerary) currentTabs.push('行程');
           if (m.flights) currentTabs.push('航班');
           if (m.transports) currentTabs.push('交通');
           if (m.accommodations) currentTabs.push('住宿');
@@ -2054,7 +2059,7 @@
           return currentTabs;
         });
 
-        watch(visibleTabs, (newTabs) => { if (!newTabs.includes(currentView.value)) currentView.value = '行程'; });
+        watch(visibleTabs, (newTabs) => { if (!newTabs.includes(currentView.value)) currentView.value = newTabs[0] || ''; });
 
         const calculateRelativeDays = (dateRangeStr) => {
             if (!tripData.value.startDate || !dateRangeStr || !dateRangeStr.includes(' 至 ')) return null;
@@ -2459,10 +2464,10 @@
             coEditors: [], companions: ['我', '盈瑜'], itinerary: [], expenses: [],
             expenseSettings: { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' },
             coverImage: '',
-            modules: { flights: true, transports: true, accommodations: true, luggage: true, expenses: true },
+            modules: { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true },
             flights: [], transports: [], accommodations: [], luggage: []
           };
-          setupData.value = { name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { flights: true, transports: true, accommodations: true, luggage: true, expenses: true } };
+          setupData.value = { name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true } };
           isEditor.value = true; appState.value = 'TRIP'; isSetup.value = true;
           nextTick(() => {
             try {
@@ -2497,7 +2502,8 @@
             if (!data.coEditors || !Array.isArray(data.coEditors)) data.coEditors = [];
             
             if (!data.expenses) data.expenses = [];
-            if (!data.modules) data.modules = { flights: true, transports: true, accommodations: true, luggage: true, expenses: true };
+            if (!data.modules) data.modules = { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true };
+            else if (data.modules.itinerary === undefined) data.modules.itinerary = true;
             if (!data.expenseSettings) { data.expenseSettings = { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' }; } 
             else { if (!data.expenseSettings.pax) data.expenseSettings.pax = { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }; if (data.expenseSettings.pax.elder === undefined) data.expenseSettings.pax.elder = 0; }
 
@@ -2623,7 +2629,7 @@
           setupData.value = { 
              name: tripData.value.tripName, destination: tripData.value.destination, startDate: tripData.value.startDate, endDate: tripData.value.endDate, themeColor: tripData.value.themeColor, coEditorsStr: (tripData.value.coEditors || []).join(', '),
              coverImage: tripData.value.coverImage || '',
-             modules: tripData.value.modules ? JSON.parse(JSON.stringify(tripData.value.modules)) : { flights: true, transports: true, accommodations: true, luggage: true, expenses: true }
+             modules: tripData.value.modules ? { itinerary: true, ...JSON.parse(JSON.stringify(tripData.value.modules)) } : { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true }
           };
           isSetup.value = true;
           nextTick(() => {
