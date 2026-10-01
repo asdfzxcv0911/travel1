@@ -447,7 +447,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v51</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v52</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -495,9 +495,10 @@
             </div>
           </div>
           <button v-if="isEditor" @click="showMarqueeModal = true"
-                  class="shrink-0 z-10 px-2.5 py-1 mr-2 rounded-lg text-[11px] md:text-xs font-bold bg-black/15 hover:bg-black/25 backdrop-blur-sm transition-colors flex items-center gap-1 shadow-sm"
-                  :style="{ color: tripData.marquee?.textColor || '#854d0e' }">
-            <span>⚙️</span><span>跑馬燈設定</span>
+                  class="shrink-0 z-10 px-2 md:px-2.5 py-1 mr-2 rounded-lg text-[11px] md:text-xs font-bold bg-black/15 hover:bg-black/25 backdrop-blur-sm transition-colors flex items-center gap-1 shadow-sm"
+                  :style="{ color: tripData.marquee?.textColor || '#854d0e' }"
+                  title="跑馬燈設定">
+            <span>⚙️</span><span class="hidden md:inline">跑馬燈設定</span>
           </button>
         </div>
 
