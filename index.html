@@ -1910,11 +1910,11 @@
              </div>
              <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div class="flex items-center justify-between bg-blue-50 p-2 rounded-lg border border-blue-100">
-                   <span class="text-xs font-black text-blue-700">👨 大人(13-64)</span>
+                   <span class="text-xs font-black text-blue-700">👨 大人(13+)</span>
                    <input type="number" v-model.number="tripData.expenseSettings.pax.adult" class="w-12 bg-white border border-blue-200 rounded text-center text-sm font-black text-blue-900 outline-none focus:border-blue-400">
                 </div>
                 <div class="flex items-center justify-between bg-purple-50 p-2 rounded-lg border border-purple-100">
-                   <span class="text-xs font-black text-purple-700">👴 長者(65以上)</span>
+                   <span class="text-xs font-black text-purple-700">👴 長者(65+)</span>
                    <input type="number" v-model.number="tripData.expenseSettings.pax.elder" class="w-12 bg-white border border-purple-200 rounded text-center text-sm font-black text-purple-900 outline-none focus:border-purple-400">
                 </div>
                 <div class="flex items-center justify-between bg-green-50 p-2 rounded-lg border border-green-100">
@@ -2592,7 +2592,20 @@
           });
         };
 
-        watch(currentView, () => { bindDynamicPickers(); });
+        const scrollToTop = () => {
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        };
+
+        watch(currentView, () => {
+          scrollToTop();
+          bindDynamicPickers();
+        });
+
+        watch(activeDayTab, () => {
+          scrollToTop();
+        });
 
         watch(() => tripData.value, (newVal) => {
           if (appState.value === 'TRIP' && isEditor.value && !isSetup.value) {
@@ -2702,7 +2715,10 @@
           });
         };
 
-        const switchTab = (tab) => { currentView.value = tab; };
+        const switchTab = (tab) => {
+          currentView.value = tab;
+          scrollToTop();
+        };
 
         const openTrip = async (id) => { 
           try { window.history.pushState({}, '', `?id=${id}`); } catch(e){}
