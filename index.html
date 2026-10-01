@@ -419,7 +419,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v43</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v44</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -513,17 +513,17 @@
         </div>
       </div>
 
-      <!-- 圖片全螢幕放大鏡 Modal (新增左右滑動與指示器) -->
-      <div v-if="activeImage" class="fixed inset-0 bg-black/90 z-[600] flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm" @click.self="activeImage = null" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
-        <button @click="activeImage = null" class="absolute top-4 right-4 md:top-8 md:right-8 text-white hover:text-gray-300 text-4xl font-bold z-[610] transition-colors">&times;</button>
+      <!-- 圖片全螢幕放大鏡 Modal (新增左右滑動與指示器，提升至最高圖層 z-[800]) -->
+      <div v-if="activeImage" class="fixed inset-0 bg-black/90 z-[800] flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm" @click.self="activeImage = null" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
+        <button @click="activeImage = null" class="absolute top-4 right-4 md:top-8 md:right-8 text-white hover:text-gray-300 text-4xl font-bold z-[810] transition-colors">&times;</button>
         
-        <button v-if="activeImage.list && activeImage.list.length > 1 && activeImage.index > 0" @click.stop="prevImage" class="absolute left-2 md:left-8 text-white/30 hover:text-white text-5xl font-bold z-[610] transition-colors p-4 select-none">‹</button>
+        <button v-if="activeImage.list && activeImage.list.length > 1 && activeImage.index > 0" @click.stop="prevImage" class="absolute left-2 md:left-8 text-white/30 hover:text-white text-5xl font-bold z-[810] transition-colors p-4 select-none">‹</button>
         
         <img :src="activeImage.list ? activeImage.list[activeImage.index] : activeImage" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl select-none">
         
-        <button v-if="activeImage.list && activeImage.list.length > 1 && activeImage.index < activeImage.list.length - 1" @click.stop="nextImage" class="absolute right-2 md:right-8 text-white/30 hover:text-white text-5xl font-bold z-[610] transition-colors p-4 select-none">›</button>
+        <button v-if="activeImage.list && activeImage.list.length > 1 && activeImage.index < activeImage.list.length - 1" @click.stop="nextImage" class="absolute right-2 md:right-8 text-white/30 hover:text-white text-5xl font-bold z-[810] transition-colors p-4 select-none">›</button>
 
-        <div v-if="activeImage.list && activeImage.list.length > 1" class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md text-white text-sm font-bold px-4 py-1.5 rounded-full z-[610]">
+        <div v-if="activeImage.list && activeImage.list.length > 1" class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md text-white text-sm font-bold px-4 py-1.5 rounded-full z-[810]">
           {{ activeImage.index + 1 }} / {{ activeImage.list.length }}
         </div>
       </div>
@@ -600,7 +600,8 @@
         </div>
       </div>
 
-      <div v-if="activeAccHotelIdx !== null && activeAccModalType" class="fixed inset-0 bg-black/60 z-[600] flex justify-center items-center p-4 backdrop-blur-sm" @click.self="closeAccModal">
+      <!-- 住宿四宮格彈出視窗 (當正在全螢幕看大圖 activeImage 時暫時隱藏，關閉大圖後自動恢復) -->
+      <div v-if="activeAccHotelIdx !== null && activeAccModalType" v-show="!activeImage" class="fixed inset-0 bg-black/60 z-[600] flex justify-center items-center p-4 backdrop-blur-sm" @click.self="closeAccModal">
         <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-modal-bounce relative">
            <!-- 共用 Header -->
            <div class="px-5 py-4 flex justify-between items-center text-white shrink-0 shadow-sm z-10" :class="{
