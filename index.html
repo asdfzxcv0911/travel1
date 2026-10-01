@@ -372,6 +372,10 @@
             <label class="block mb-2 font-medium text-sm text-gray-700">啟用模組 (依旅程需求自由開關)</label>
             <div class="flex flex-wrap gap-2.5">
               <label class="flex items-center gap-1.5 cursor-pointer bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors shadow-sm">
+                  <input type="checkbox" v-model="setupData.modules.companions" class="accent-[var(--theme-color)] w-4 h-4 rounded cursor-pointer">
+                  <span class="text-sm font-bold text-gray-600">👥 成員</span>
+               </label>
+              <label class="flex items-center gap-1.5 cursor-pointer bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors shadow-sm">
                   <input type="checkbox" v-model="setupData.modules.itinerary" class="accent-[var(--theme-color)] w-4 h-4 rounded cursor-pointer">
                   <span class="text-sm font-bold text-gray-600">📅 行程</span>
                </label>
@@ -423,7 +427,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v45</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v47</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -454,52 +458,114 @@
           </div>
         </div>
 
-        <div class="bg-white shadow-sm border-b border-gray-200 relative overflow-hidden">
-          
-          <!-- 新增：動態封面背景與白霧漸層遮罩 (pointer-events-none 確保不擋住天氣按鈕點擊) -->
-          <div v-if="tripData.coverImage" class="absolute inset-0 z-0 pointer-events-none">
-            <div class="absolute inset-0 bg-cover bg-center opacity-80" :style="{ backgroundImage: 'url(' + tripData.coverImage + ')' }"></div>
-            <div class="absolute inset-0 bg-gradient-to-b from-white/30 via-white/80 to-white"></div>
-          </div>
+        <div class="bg-white shadow-sm border-b border-gray-200">
+          <!-- 上層：行程標題區 (封面圖片僅限於此區塊) -->
+          <div class="relative overflow-hidden" :class="{'border-b border-gray-100': tripData.coverImage}">
+            <div v-if="tripData.coverImage" class="absolute inset-0 z-0 pointer-events-none">
+              <div class="absolute inset-0 bg-cover bg-center opacity-80" :style="{ backgroundImage: 'url(' + tripData.coverImage + ')' }"></div>
+              <div class="absolute inset-0 bg-gradient-to-b from-white/30 via-white/75 to-white/95"></div>
+            </div>
 
-          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 relative z-10">
-            <div class="flex justify-between items-start">
-              <div>
-                <div class="flex items-center gap-3 mb-1 md:mb-2">
-                  <span class="text-gray-500 font-medium text-sm md:text-base">📍 {{ tripData.destination }}</span>
-                  <span v-if="currentWeather" @click="showWeatherModal = true" class="cursor-pointer flex items-center gap-1 md:gap-1.5 bg-sky-50 text-sky-700 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold border border-sky-100 hover:bg-sky-100 transition-colors shadow-sm" title="點擊查看一周天氣">
-                     <span class="text-xs md:text-sm">{{ currentWeather.icon }}</span> {{ currentWeather.temp }}°C
-                  </span>
-                  <span v-else-if="weatherLoading" class="text-[10px] md:text-xs text-gray-400 animate-pulse bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">🌤️ 讀取中...</span>
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 relative z-10">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="flex items-center gap-3 mb-1 md:mb-2">
+                    <span class="text-gray-500 font-medium text-sm md:text-base">📍 {{ tripData.destination }}</span>
+                    <span v-if="currentWeather" @click="showWeatherModal = true" class="cursor-pointer flex items-center gap-1 md:gap-1.5 bg-sky-50 text-sky-700 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold border border-sky-100 hover:bg-sky-100 transition-colors shadow-sm" title="點擊查看一周天氣">
+                       <span class="text-xs md:text-sm">{{ currentWeather.icon }}</span> {{ currentWeather.temp }}°C
+                    </span>
+                    <span v-else-if="weatherLoading" class="text-[10px] md:text-xs text-gray-400 animate-pulse bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">🌤️ 讀取中...</span>
+                  </div>
+                  <h1 class="text-2xl md:text-4xl font-bold text-gray-900 mb-1 md:mb-2">{{ tripData.tripName }}</h1>
+                  <div class="flex flex-wrap items-center gap-2 mt-1">
+                    <p class="text-gray-500 font-medium text-xs md:text-base">{{ formatDateRange(tripData.startDate, tripData.endDate) }} (共 {{ tripData.itinerary.length }} 天)</p>
+                    <button v-if="(!tripData.modules || tripData.modules.companions !== false) && (companionSummaryText || isEditor)"
+                            @click="showCompanionModal = true"
+                            class="inline-flex items-center gap-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors shadow-sm cursor-pointer">
+                      <span>👥</span>
+                      <span>{{ companionSummaryText || '點擊設定旅遊成員' }}</span>
+                      <span v-if="isEditor" class="text-[10px] opacity-75">✏️</span>
+                    </button>
+                  </div>
                 </div>
-                <h1 class="text-2xl md:text-4xl font-bold text-gray-900 mb-1 md:mb-2">{{ tripData.tripName }}</h1>
-                <p class="text-gray-500 font-medium text-xs md:text-base">{{ formatDateRange(tripData.startDate, tripData.endDate) }} (共 {{ tripData.itinerary.length }} 天)</p>
               </div>
             </div>
           </div>
-          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div class="flex space-x-4 md:space-x-6 overflow-x-auto hide-scrollbar">
-              <button v-for="tab in visibleTabs" :key="tab" @click="switchTab(tab)"
-                :class="['pb-2 md:pb-3 px-1 text-sm md:text-base font-bold transition-colors border-b-4 whitespace-nowrap', 
-                         currentView === tab ? 'theme-border theme-text' : 'border-transparent text-gray-500 hover:text-gray-700']">
-                {{ tab }}
-              </button>
+
+          <!-- 下層：功能分頁選單與 Day 切換列 (獨立純白底色，視覺分層清晰) -->
+          <div class="bg-white relative z-10">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-2">
+              <div class="flex space-x-4 md:space-x-6 overflow-x-auto hide-scrollbar">
+                <button v-for="tab in visibleTabs" :key="tab" @click="switchTab(tab)"
+                  :class="['pb-2 md:pb-3 px-1 text-sm md:text-base font-bold transition-colors border-b-4 whitespace-nowrap', 
+                           currentView === tab ? 'theme-border theme-text' : 'border-transparent text-gray-500 hover:text-gray-700']">
+                  {{ tab }}
+                </button>
+              </div>
+              
+              <!-- v35: 將 Day 切換按鈕移入固定的 Header 區塊，保證 100% 完美固定且不被遮擋 -->
+              <div v-if="currentView === '行程'" class="flex gap-2 overflow-x-auto hide-scrollbar pt-2 pb-3 md:pb-4 border-t border-gray-100">
+                <button @click="activeDayTab = 'overview'" 
+                        :class="['px-4 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-bold whitespace-nowrap shadow-sm transition-all', 
+                                 activeDayTab === 'overview' ? 'theme-bg text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200']">
+                  📋 總行程
+                </button>
+                <button v-for="(day, idx) in tripData.itinerary" :key="idx" 
+                        @click="activeDayTab = idx" 
+                        :class="['px-4 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-bold whitespace-nowrap shadow-sm transition-all', 
+                                 activeDayTab === idx ? 'theme-bg text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200']">
+                  Day {{ idx + 1 }}
+                </button>
+              </div>
             </div>
-            
-            <!-- v35: 將 Day 切換按鈕移入固定的 Header 區塊，保證 100% 完美固定且不被遮擋 -->
-            <div v-if="currentView === '行程'" class="flex gap-2 overflow-x-auto hide-scrollbar pt-2 pb-3 md:pb-4 border-t border-gray-100/50">
-              <button @click="activeDayTab = 'overview'" 
-                      :class="['px-4 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-bold whitespace-nowrap shadow-sm transition-all', 
-                               activeDayTab === 'overview' ? 'theme-bg text-white' : 'bg-gray-50/80 text-gray-600 hover:bg-gray-100 border border-gray-200']">
-                📋 總行程
-              </button>
-              <button v-for="(day, idx) in tripData.itinerary" :key="idx" 
-                      @click="activeDayTab = idx" 
-                      :class="['px-4 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-bold whitespace-nowrap shadow-sm transition-all', 
-                               activeDayTab === idx ? 'theme-bg text-white' : 'bg-gray-50/80 text-gray-600 hover:bg-gray-100 border border-gray-200']">
-                Day {{ idx + 1 }}
-              </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 旅遊成員名單 Modal -->
+      <div v-if="showCompanionModal" class="fixed inset-0 bg-black/60 z-[600] flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm" @click.self="showCompanionModal = false">
+        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[85vh] animate-modal-bounce">
+          <div class="theme-bg px-5 py-4 flex justify-between items-center text-white shrink-0">
+            <h3 class="font-bold text-lg flex items-center gap-2">👥 旅遊成員名單</h3>
+            <button @click="showCompanionModal = false" class="text-white/80 hover:text-white text-xl font-bold">✕</button>
+          </div>
+          
+          <div class="p-5 overflow-y-auto hide-scrollbar flex-1 bg-gray-50 space-y-4">
+            <div v-if="isEditor" class="flex gap-2">
+              <button @click="addMember('adult')" class="flex-1 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-colors shadow-sm">＋ 新增大人</button>
+              <button @click="addMember('child')" class="flex-1 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-xl text-xs font-bold transition-colors shadow-sm">＋ 新增小孩</button>
             </div>
+
+            <div v-if="!tripData.memberList || tripData.memberList.length === 0" class="text-center py-8 text-xs font-bold text-gray-400 bg-white border-2 border-dashed border-gray-200 rounded-xl">
+              尚未新增任何旅遊成員
+            </div>
+
+            <div v-else class="space-y-2.5">
+              <div v-for="(member, mIdx) in tripData.memberList" :key="member.id" class="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm">
+                <select v-if="isEditor" v-model="member.avatar" class="bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-1 text-base outline-none cursor-pointer">
+                  <option>👨</option><option>👩</option><option>👦</option><option>👧</option><option>👴</option><option>👵</option><option>👶</option><option>🧑</option>
+                </select>
+                <span v-else class="text-xl px-1">{{ member.avatar || '🧑' }}</span>
+
+                <select v-if="isEditor" v-model="member.role" class="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-700 outline-none cursor-pointer">
+                  <option value="adult">大人</option>
+                  <option value="child">小孩</option>
+                </select>
+                <span v-else class="text-xs font-bold px-2 py-0.5 rounded-full" :class="member.role === 'child' ? 'bg-pink-50 text-pink-600 border border-pink-200' : 'bg-blue-50 text-blue-600 border border-blue-200'">
+                  {{ member.role === 'child' ? '小孩' : '大人' }}
+                </span>
+
+                <input v-if="isEditor" type="text" v-model="member.name" placeholder="輸入姓名或暱稱" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1 text-sm font-bold text-gray-800 outline-none focus-theme">
+                <span v-else class="flex-1 text-sm font-bold text-gray-800 truncate">{{ member.name || '未填寫姓名' }}</span>
+
+                <button v-if="isEditor" @click="removeMember(mIdx)" class="text-gray-300 hover:text-red-500 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors font-bold">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-5 py-3 border-t border-gray-100 bg-white flex justify-between items-center shrink-0">
+            <span class="text-xs font-bold text-gray-500">{{ companionSummaryText || '共 0 人' }}</span>
+            <button @click="showCompanionModal = false" class="px-5 py-2 theme-bg text-white rounded-xl font-bold text-xs shadow-sm">完成</button>
           </div>
         </div>
       </div>
@@ -1980,6 +2046,7 @@
         const forecast = ref([]);
         const weatherLoading = ref(false);
         const showWeatherModal = ref(false);
+        const showCompanionModal = ref(false);
 
         const shareDialog = ref({ show: false, url: '' });
         const shareStatus = ref('idle');
@@ -2009,7 +2076,8 @@
                  Boolean(activeImage.value) ||
                  Boolean(activeTransitModal.value) ||
                  Boolean(activeAccModalType.value) || // 新增住宿 Modal 監控
-                 showWeatherModal.value;
+                 showWeatherModal.value ||
+                 showCompanionModal.value;
         });
 
         watch(isAnyModalOpen, (isOpen) => {
@@ -2022,16 +2090,43 @@
           }
         });
 
-        const setupData = ref({ name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true } });
+        const setupData = ref({ name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true } });
         
         const tripData = ref({
           ownerId: '', tripName: '未命名行程', destination: '', startDate: '', endDate: '', themeColor: '#e91e63',
-          coEditors: [], companions: ['我', '盈瑜'], itinerary: [], expenses: [],
+          coEditors: [], companions: ['我', '盈瑜'], memberList: [], itinerary: [], expenses: [],
           expenseSettings: { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' },
           coverImage: '',
-          modules: { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true },
+          modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true },
           flights: [], transports: [], accommodations: [], luggage: []
         });
+
+        const companionSummaryText = computed(() => {
+          const list = tripData.value.memberList || [];
+          if (list.length === 0) return '';
+          const adults = list.filter(m => m.role !== 'child').length;
+          const children = list.filter(m => m.role === 'child').length;
+          let countParts = [];
+          if (adults > 0) countParts.push(`${adults}大`);
+          if (children > 0) countParts.push(`${children}小`);
+          const countStr = countParts.join('');
+          const names = list.map(m => (m.name || '').trim()).filter(Boolean);
+          return names.length > 0 ? `${countStr} (${names.join('、')})` : countStr;
+        });
+
+        const addMember = (role = 'adult') => {
+          if (!tripData.value.memberList) tripData.value.memberList = [];
+          tripData.value.memberList.push({
+            id: Math.random().toString(36).substr(2, 9),
+            role,
+            avatar: role === 'child' ? '👦' : '🧑',
+            name: ''
+          });
+        };
+
+        const removeMember = (idx) => {
+          if (tripData.value.memberList) tripData.value.memberList.splice(idx, 1);
+        };
 
         const isOwner = computed(() => !!(currentUser.value && tripData.value && tripData.value.ownerId === currentUser.value.uid));
         const hasEditPermission = computed(() => {
@@ -2461,13 +2556,13 @@
           currentTripId.value = null; 
           tripData.value = { 
             ownerId: currentUser.value.uid, tripName: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', 
-            coEditors: [], companions: ['我', '盈瑜'], itinerary: [], expenses: [],
+            coEditors: [], companions: ['我', '盈瑜'], memberList: [], itinerary: [], expenses: [],
             expenseSettings: { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' },
             coverImage: '',
-            modules: { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true },
+            modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true },
             flights: [], transports: [], accommodations: [], luggage: []
           };
-          setupData.value = { name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true } };
+          setupData.value = { name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true } };
           isEditor.value = true; appState.value = 'TRIP'; isSetup.value = true;
           nextTick(() => {
             try {
@@ -2500,10 +2595,14 @@
             const data = docSnap.data();
             if (!data.flights) data.flights = []; if (!data.transports) data.transports = []; if (!data.accommodations) data.accommodations = []; if (!data.luggage) data.luggage = [];
             if (!data.coEditors || !Array.isArray(data.coEditors)) data.coEditors = [];
+            if (!data.memberList || !Array.isArray(data.memberList)) data.memberList = [];
             
             if (!data.expenses) data.expenses = [];
-            if (!data.modules) data.modules = { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true };
-            else if (data.modules.itinerary === undefined) data.modules.itinerary = true;
+            if (!data.modules) data.modules = { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true };
+            else {
+               if (data.modules.itinerary === undefined) data.modules.itinerary = true;
+               if (data.modules.companions === undefined) data.modules.companions = true;
+            }
             if (!data.expenseSettings) { data.expenseSettings = { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' }; } 
             else { if (!data.expenseSettings.pax) data.expenseSettings.pax = { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }; if (data.expenseSettings.pax.elder === undefined) data.expenseSettings.pax.elder = 0; }
 
@@ -2629,7 +2728,7 @@
           setupData.value = { 
              name: tripData.value.tripName, destination: tripData.value.destination, startDate: tripData.value.startDate, endDate: tripData.value.endDate, themeColor: tripData.value.themeColor, coEditorsStr: (tripData.value.coEditors || []).join(', '),
              coverImage: tripData.value.coverImage || '',
-             modules: tripData.value.modules ? { itinerary: true, ...JSON.parse(JSON.stringify(tripData.value.modules)) } : { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true }
+             modules: tripData.value.modules ? { companions: true, itinerary: true, ...JSON.parse(JSON.stringify(tripData.value.modules)) } : { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true }
           };
           isSetup.value = true;
           nextTick(() => {
@@ -3005,6 +3104,7 @@
           isOwner, hasEditPermission, isEditor, isSetup, setupData, generateTrip, openSetup, closeSetup,
           saveStatus, shareStatus, tabs, visibleTabs, currentView, activeDayTab, tripData, formatDateRange, activeMemo, activeImage, shareDialog, copyToClipboard, exportToText, switchTab,
           currentWeather, forecast, weatherLoading, showWeatherModal,
+          showCompanionModal, companionSummaryText, addMember, removeMember,
           handleTouchStart, handleTouchEnd, prevImage, nextImage,
           alertDialog, confirmDialog, customAlert, customConfirm,
           stayOptions, formatStayTime, toggleMenu, getTransitIcon, formatDuration,
