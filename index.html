@@ -447,7 +447,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v54</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v55</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -2231,9 +2231,11 @@
                        
                        <div class="md:text-right flex flex-row md:flex-col items-center justify-between md:items-end md:justify-center border-t md:border-t-0 md:border-l border-dashed border-gray-200 pt-3 md:pt-0 md:pl-4 mt-2 md:mt-0 shrink-0">
                           <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest md:mb-1">Subtotal</span>
-                          <span class="text-xl md:text-2xl font-black text-gray-900 tracking-tighter">{{ formatCurrency(calculateExpenseItemTotalTWD(exp), 'TWD') }}</span>
-                          <div v-if="exp.currency !== 'TWD'" class="text-[10px] font-bold text-gray-400 mt-0.5">
-                             外幣: {{ formatCurrency(calculateExpenseItemTotalForeign(exp), exp.currency) }} <br class="hidden md:block"> <span class="md:hidden">|</span> (匯率 {{ exp.exchangeRate }})
+                          <div class="flex flex-col items-end text-right">
+                             <span class="text-xl md:text-2xl font-black text-gray-900 tracking-tighter leading-tight">{{ formatCurrency(calculateExpenseItemTotalTWD(exp), 'TWD') }}</span>
+                             <div v-if="exp.currency !== 'TWD'" class="text-[10px] font-bold text-gray-400 mt-1 leading-relaxed">
+                                外幣: {{ formatCurrency(calculateExpenseItemTotalForeign(exp), exp.currency) }} <br class="hidden md:block"> <span class="md:hidden">|</span> (匯率 {{ exp.exchangeRate }})
+                             </div>
                           </div>
                        </div>
                    </div>
