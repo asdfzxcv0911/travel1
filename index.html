@@ -447,7 +447,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v53</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v54</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -872,33 +872,48 @@
 
            <!-- Body: Booking -->
            <div v-if="activeAccModalType === 'booking'" class="p-5 overflow-y-auto hide-scrollbar flex-1 bg-gray-50 flex flex-col gap-4">
-              <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                 <div class="flex items-center justify-between mb-1">
-                    <label v-if="!tripData.accommodations[activeAccHotelIdx].bookingLink && !isEditor" class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">訂房代號 Booking Ref</label>
-                    <a v-else-if="tripData.accommodations[activeAccHotelIdx].bookingLink" :href="tripData.accommodations[activeAccHotelIdx].bookingLink" target="_blank" class="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 hover:bg-emerald-100 transition-colors w-max">
-                       🔗 開啟訂房憑證連結
-                    </a>
-                    <label v-else class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">訂房代號 Booking Ref</label>
-                    
-                    <button v-if="isEditor" @click="tripData.accommodations[activeAccHotelIdx].editBookingLink = !tripData.accommodations[activeAccHotelIdx].editBookingLink" class="text-[10px] text-gray-400 hover:text-emerald-500 font-bold flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
-                       🔗 連結
-                    </button>
+              <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
+                 <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                       <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">訂房憑證圖片 Booking Vouchers</label>
+                       <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full text-[9px] font-bold">{{ tripData.accommodations[activeAccHotelIdx].bookingImages ? tripData.accommodations[activeAccHotelIdx].bookingImages.length : 0 }}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                       <a v-if="tripData.accommodations[activeAccHotelIdx].bookingLink" :href="tripData.accommodations[activeAccHotelIdx].bookingLink" target="_blank" class="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 hover:bg-emerald-100 transition-colors">
+                          🔗 開啟憑證連結
+                       </a>
+                       <button v-if="isEditor" @click="tripData.accommodations[activeAccHotelIdx].editBookingLink = !tripData.accommodations[activeAccHotelIdx].editBookingLink" class="text-[10px] text-gray-400 hover:text-emerald-500 font-bold flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
+                          🔗 連結
+                       </button>
+                    </div>
                  </div>
                  
-                 <div v-if="isEditor && tripData.accommodations[activeAccHotelIdx].editBookingLink" class="mb-3 animate-fade-in origin-top">
-                    <input v-model="tripData.accommodations[activeAccHotelIdx].bookingLink" placeholder="貼上 Agoda/Booking 等憑證網址..." class="w-full text-xs bg-gray-50 border border-gray-200 rounded p-1.5 outline-none focus:border-emerald-400 text-gray-600 font-mono">
+                 <div v-if="isEditor && tripData.accommodations[activeAccHotelIdx].editBookingLink" class="animate-fade-in origin-top">
+                    <input v-model="tripData.accommodations[activeAccHotelIdx].bookingLink" placeholder="貼上 Agoda/Booking 等憑證網址 (選填)..." class="w-full text-xs bg-gray-50 border border-gray-200 rounded p-1.5 outline-none focus:border-emerald-400 text-gray-600 font-mono">
                  </div>
 
-                 <input v-if="isEditor" v-model="tripData.accommodations[activeAccHotelIdx].bookingRef" placeholder="例如：123456789 (多組請用 ; 分隔)" class="w-full font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-2 outline-none focus:border-emerald-400 text-lg md:text-xl uppercase tracking-wider text-center shadow-inner font-kai">
-                 
-                 <!-- 唯讀模式：支援用 ; 或 ； 分隔並整齊上下排列 -->
-                 <div v-else class="flex flex-col items-center justify-center py-2 gap-1 font-kai font-bold text-emerald-700 text-xl md:text-2xl tracking-wider">
-                    <template v-if="tripData.accommodations[activeAccHotelIdx].bookingRef">
-                       <span v-for="(refItem, rIdx) in tripData.accommodations[activeAccHotelIdx].bookingRef.split(/[；;]/)" :key="rIdx" class="leading-relaxed">
-                          {{ refItem.trim() }}
-                       </span>
-                    </template>
-                    <span v-else class="text-gray-400 text-sm font-sans font-normal">無代號</span>
+                 <!-- 訂房憑證圖片預覽網格 -->
+                 <div v-if="tripData.accommodations[activeAccHotelIdx].bookingImages && tripData.accommodations[activeAccHotelIdx].bookingImages.length > 0" class="grid grid-cols-2 gap-2.5">
+                    <div v-for="(imgSrc, imgIdx) in tripData.accommodations[activeAccHotelIdx].bookingImages" :key="imgIdx" class="relative group aspect-[4/3] rounded-xl overflow-hidden shadow-sm border border-emerald-100 bg-gray-100">
+                       <img :src="imgSrc" @click="activeImage = { list: tripData.accommodations[activeAccHotelIdx].bookingImages, index: imgIdx }" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300">
+                       <div class="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded pointer-events-none">點擊放大</div>
+                       <button v-if="isEditor" @click.stop="removeBookingImage(tripData.accommodations[activeAccHotelIdx], imgIdx)" class="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
+                    </div>
+                 </div>
+                 <div v-else class="text-center py-6 text-xs text-gray-400 font-bold bg-emerald-50/40 border-2 border-dashed border-emerald-100 rounded-xl">
+                    尚未上傳訂房憑證截圖
+                 </div>
+
+                 <!-- 編輯模式下：新增憑證圖片控制項 -->
+                 <div v-if="isEditor" class="bg-emerald-50/40 p-3 rounded-xl border border-emerald-100 flex flex-col gap-2.5">
+                    <div class="flex gap-2">
+                       <input type="text" v-model="tripData.accommodations[activeAccHotelIdx].tempBookingImageUrl" placeholder="貼上憑證圖片網址" class="flex-1 bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-emerald-400">
+                       <button @click="addBookingImageUrl(tripData.accommodations[activeAccHotelIdx])" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors shrink-0">加入</button>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white border border-emerald-100 rounded-lg px-2.5 py-1.5">
+                       <span class="text-[10px] text-emerald-700 font-bold shrink-0">手機/電腦上傳:</span>
+                       <input type="file" accept="image/*" multiple @change="handleBookingImageUpload($event, tripData.accommodations[activeAccHotelIdx])" class="text-[11px] text-gray-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer w-full">
+                    </div>
                  </div>
               </div>
               <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
@@ -1985,7 +2000,8 @@
                  <button @click="openAccModal('booking', idx)" class="flex flex-col items-center justify-center p-3 bg-emerald-50/80 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors border border-emerald-100/50 relative group shadow-sm">
                     <span class="text-2xl mb-1 group-hover:scale-110 transition-transform duration-300 drop-shadow-sm">🧾</span>
                     <span class="text-[11px] font-black tracking-wide">訂房憑證</span>
-                    <span v-if="hotel.bookingRef" class="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    <span v-if="hotel.bookingImages && hotel.bookingImages.length > 0" class="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-1.5 rounded-full shadow-sm">{{ hotel.bookingImages.length }}</span>
+                    <span v-else-if="hotel.bookingLink" class="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full"></span>
                  </button>
                  
                  <!-- 📝 備忘 -->
@@ -2284,8 +2300,10 @@
             activeAccHotelIdx.value = idx;
             
             let acc = tripData.value.accommodations[idx];
-            // 初始化新增的編輯連結狀態
+            // 初始化新增的編輯連結與憑證圖片狀態
             if (acc.editBookingLink === undefined) acc.editBookingLink = false;
+            if (!Array.isArray(acc.bookingImages)) acc.bookingImages = [];
+            if (acc.tempBookingImageUrl === undefined) acc.tempBookingImageUrl = '';
             
             if (!acc.amenities) {
                 acc.amenities = { breakfast: false, breakfastInfo: '', hasParking: false, parkingInfo: '', wifi: false, luggage: false };
@@ -3247,7 +3265,7 @@
         const addAccommodation = () => { 
             tripData.value.accommodations.push({ 
                 id: generateId(), name: '', nameLink: '', stars: '5', dateRange: '', checkInTime: '15:00', checkOutTime: '11:00', 
-                address: '', addressLink: '', phone: '', bookingRef: '', bookingLink: '', editBookingLink: false, memo: '',
+                address: '', addressLink: '', phone: '', bookingRef: '', bookingLink: '', editBookingLink: false, bookingImages: [], tempBookingImageUrl: '', memo: '',
                 amenities: { breakfast: false, breakfastInfo: '', hasParking: false, parkingInfo: '', wifi: false, luggage: false }
             }); 
             bindDynamicPickers(); 
@@ -3332,6 +3350,43 @@
         // 通用：從模組項目移除指定圖片 (航班、交通、住宿)
         const removeImageFromItem = (item, imgIdx) => {
             if (item.images) { item.images.splice(imgIdx, 1); }
+        };
+
+        // 住宿訂房憑證專用：加入圖片網址、移除圖片、本機多圖上傳
+        const addBookingImageUrl = (hotel) => {
+            if (hotel.tempBookingImageUrl && hotel.tempBookingImageUrl.trim() !== '') {
+                if (!Array.isArray(hotel.bookingImages)) hotel.bookingImages = [];
+                hotel.bookingImages.push(hotel.tempBookingImageUrl.trim());
+                hotel.tempBookingImageUrl = '';
+            }
+        };
+        const removeBookingImage = (hotel, imgIdx) => {
+            if (hotel.bookingImages) { hotel.bookingImages.splice(imgIdx, 1); }
+        };
+        const handleBookingImageUpload = async (e, hotel) => {
+            const files = e.target.files; if (!files || files.length === 0) return;
+            saveStatus.value = '憑證上傳中... ⏳';
+            for (const file of Array.from(files)) {
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('key', '722bc54189bddc68e1f3a24d1c02d6de');
+                try {
+                    const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.success) {
+                        if (!Array.isArray(hotel.bookingImages)) hotel.bookingImages = [];
+                        hotel.bookingImages.push(data.data.url);
+                    } else {
+                        customAlert("憑證圖片上傳失敗：" + (data.error?.message || '未知錯誤'));
+                    }
+                } catch (err) {
+                    customAlert("上傳發生錯誤，請稍後再試。");
+                    break;
+                }
+            }
+            saveStatus.value = '上傳完成 ✅';
+            e.target.value = '';
+            setTimeout(() => { if (saveStatus.value.includes('上傳')) saveStatus.value = ''; }, 3000);
         };
 
         // 將指定照片設為首圖
@@ -3514,7 +3569,7 @@
           expenseCategories, currencyList, availableRates, updateExchangeRate,
           getCategoryIcon, getCategoryColor, getTypeLabel, getTypeColor, getMultiplier, calculateExpenseItemTotalForeign, calculateExpenseItemTotalTWD, totalExpense, expenseTotalsByCategory, pieChartStyle, addExpense, removeExpense, moveExpenseUp, moveExpenseDown, addExpenseDetail, removeExpenseDetail, formatCurrency,
           addItem, deleteItem, recalculateDay, userChangedStartTime, userChangedEndTime, openField,
-          handleImageUpload, handleCoverUpload, addImageUrl, addImageUrlToItem, removeImage, removeImageFromItem, setAsCover, setFocus, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
+          handleImageUpload, handleCoverUpload, addImageUrl, addImageUrlToItem, removeImage, removeImageFromItem, addBookingImageUrl, removeBookingImage, handleBookingImageUpload, setAsCover, setFocus, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
           activeTransitModal, openTransitModal, closeTransitModal, toggleTransitSteps, addTransitStep, removeTransitStep,
           showPassengerManager, frequentPassengers, passengerForm, isEditingPassenger, showImportModal, importTargetFlightIndex, selectedImportIds,
           openPassengerManager, editPassenger, savePassengerForm, deletePassenger, openImportModal, confirmImportPassengers, toggleImportSelection,
