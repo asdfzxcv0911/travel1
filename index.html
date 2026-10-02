@@ -322,7 +322,12 @@
             <div class="h-24 w-full relative bg-cover bg-center" :style="trip.coverImage ? { backgroundImage: 'url(' + trip.coverImage + ')' } : { backgroundColor: trip.themeColor || '#e91e63' }">
               <div v-if="trip.coverImage" class="absolute inset-0 bg-black/40 transition-opacity group-hover:bg-black/50"></div>
             </div>
-            <button v-if="trip.ownerId === currentUser?.uid" @click.stop="deleteTripFromCloud(trip.id)" class="absolute top-3 right-3 z-20 bg-black/30 hover:bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm">🗑</button>
+            <div class="absolute top-3 right-3 z-20 flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
+              <button @click.stop="duplicateTrip(trip)" class="bg-black/40 hover:bg-blue-600 text-white px-2.5 h-8 rounded-full flex items-center justify-center gap-1 text-xs font-bold backdrop-blur-sm shadow-sm transition-colors" title="複製這份行程作為新模板">
+                <span>📋</span><span>複製</span>
+              </button>
+              <button v-if="trip.ownerId === currentUser?.uid" @click.stop="deleteTripFromCloud(trip.id)" class="bg-black/40 hover:bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm shadow-sm transition-colors" title="刪除行程">🗑</button>
+            </div>
             <div class="p-5">
               <div class="flex items-center gap-2 mb-2">
                 <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">📍 {{ trip.destination }}</span>
@@ -412,12 +417,20 @@
                   <span class="text-sm font-bold text-gray-600 whitespace-nowrap">🎒 行李</span>
                </label>
                <label class="flex items-center justify-center gap-1.5 cursor-pointer bg-gray-50 hover:bg-gray-100 w-[104px] h-[38px] rounded-lg border border-gray-200 transition-colors shadow-sm">
+                  <input type="checkbox" v-model="setupData.modules.shopping" class="accent-[var(--theme-color)] w-4 h-4 rounded cursor-pointer shrink-0">
+                  <span class="text-sm font-bold text-gray-600 whitespace-nowrap">🛍️ 購物</span>
+               </label>
+               <label class="flex items-center justify-center gap-1.5 cursor-pointer bg-gray-50 hover:bg-gray-100 w-[104px] h-[38px] rounded-lg border border-gray-200 transition-colors shadow-sm">
                   <input type="checkbox" v-model="setupData.modules.expenses" class="accent-[var(--theme-color)] w-4 h-4 rounded cursor-pointer shrink-0">
                   <span class="text-sm font-bold text-gray-600 whitespace-nowrap">💸 花費</span>
                </label>
                <label class="flex items-center justify-center gap-1 cursor-pointer bg-gray-50 hover:bg-gray-100 w-[104px] h-[38px] rounded-lg border border-gray-200 transition-colors shadow-sm">
                   <input type="checkbox" v-model="setupData.modules.marquee" class="accent-[var(--theme-color)] w-4 h-4 rounded cursor-pointer shrink-0">
                   <span class="text-sm font-bold text-gray-600 whitespace-nowrap flex items-center">📢<span class="text-[11px] tracking-tighter ml-0.5">跑馬燈</span></span>
+               </label>
+               <label class="flex items-center justify-center gap-1 cursor-pointer bg-gray-50 hover:bg-gray-100 w-[104px] h-[38px] rounded-lg border border-gray-200 transition-colors shadow-sm">
+                  <input type="checkbox" v-model="setupData.modules.emergency" class="accent-[var(--theme-color)] w-4 h-4 rounded cursor-pointer shrink-0">
+                  <span class="text-sm font-bold text-gray-600 whitespace-nowrap flex items-center">🛂<span class="text-[11px] tracking-tighter ml-0.5">入境緊急</span></span>
                </label>
             </div>
           </div>
@@ -447,7 +460,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v55</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v59</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -524,7 +537,13 @@
                           class="inline-flex items-center gap-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors shadow-sm cursor-pointer">
                     <span>👥</span>
                     <span>{{ companionSummaryText || '點擊設定旅遊成員' }}</span>
-                    <span v-if="isEditor" class="text-[10px] opacity-75">✏️️</span>
+                    <span v-if="isEditor" class="text-[10px] opacity-75">✏</span>
+                  </button>
+                  <button v-if="!tripData.modules || tripData.modules.emergency !== false"
+                          @click="showEmergencyModal = true"
+                          class="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors shadow-sm cursor-pointer">
+                    <span>🛂</span>
+                    <span>入境 / 緊急</span>
                   </button>
                 </div>
               </div>
@@ -600,6 +619,148 @@
           <div class="px-5 py-3 border-t border-gray-100 bg-white flex justify-between items-center shrink-0">
             <span class="text-xs font-bold text-gray-500">{{ companionSummaryText || '共 0 人' }}</span>
             <button @click="showCompanionModal = false" class="px-5 py-2 theme-bg text-white rounded-xl font-bold text-xs shadow-sm">完成</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🛂 入境卡小抄 & 🆘 緊急資訊 Modal -->
+      <div v-if="showEmergencyModal && tripData.emergencyInfo" v-show="!activeImage" class="fixed inset-0 bg-black/60 z-[600] flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm" @click.self="showEmergencyModal = false">
+        <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[88vh] animate-modal-bounce">
+          <div class="bg-gradient-to-r from-rose-500 to-red-600 px-5 py-4 flex justify-between items-center text-white shrink-0">
+            <h3 class="font-bold text-lg flex items-center gap-2">🛂 入境卡小抄 ＆ 🆘 緊急資訊</h3>
+            <button @click="showEmergencyModal = false" class="text-white/80 hover:text-white text-xl font-bold">✕</button>
+          </div>
+
+          <!-- 分頁切換 -->
+          <div class="flex border-b border-gray-200 bg-gray-100 p-1.5 gap-1.5 shrink-0">
+            <button @click="emergencyTab = 'entry'" :class="['flex-1 py-2 rounded-xl text-xs md:text-sm font-black transition-all', emergencyTab === 'entry' ? 'bg-white text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+              🛂 入境卡小抄 ＆ QR
+            </button>
+            <button @click="emergencyTab = 'sos'" :class="['flex-1 py-2 rounded-xl text-xs md:text-sm font-black transition-all', emergencyTab === 'sos' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+              🆘 緊急聯絡 ＆ 保險
+            </button>
+          </div>
+
+          <!-- 分頁 1：入境卡小抄 & QR Code -->
+          <div v-if="emergencyTab === 'entry'" class="p-5 overflow-y-auto hide-scrollbar flex-1 bg-gray-50 space-y-4">
+            <!-- QR Code 圖片專區 -->
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                  📱 入境審查 / 海關申報 QR Code 截圖
+                  <span class="bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full text-[10px] font-bold">{{ tripData.emergencyInfo.qrImages?.length || 0 }}</span>
+                </span>
+              </div>
+              <p class="text-[11px] font-bold text-gray-400">可預先放好全員的 Visit Japan Web、電子簽證或入境 QR 截圖，過海關時一鍵全螢幕放大並左右滑動。</p>
+
+              <div v-if="tripData.emergencyInfo.qrImages && tripData.emergencyInfo.qrImages.length > 0" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div v-for="(imgSrc, qIdx) in tripData.emergencyInfo.qrImages" :key="qIdx" class="relative group aspect-square rounded-xl overflow-hidden border border-rose-200 bg-gray-100 shadow-sm">
+                  <img :src="imgSrc" @click="activeImage = { list: tripData.emergencyInfo.qrImages, index: qIdx }" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform">
+                  <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded pointer-events-none">點擊放大</span>
+                  <button v-if="isEditor" @click.stop="tripData.emergencyInfo.qrImages.splice(qIdx, 1)" class="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">✕</button>
+                </div>
+              </div>
+              <div v-else class="text-center py-6 text-xs font-bold text-gray-400 bg-rose-50/40 border-2 border-dashed border-rose-200 rounded-xl">
+                尚未上傳任何入境 QR Code 截圖
+              </div>
+
+              <div v-if="isEditor" class="flex flex-col sm:flex-row gap-2 pt-1">
+                <div class="flex flex-1 gap-1.5">
+                  <input type="text" v-model="tripData.emergencyInfo.tempQrUrl" placeholder="貼上 QR 圖片網址..." class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-rose-400">
+                  <button @click="addEmergencyQrUrl" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shrink-0">加入</button>
+                </div>
+                <label class="cursor-pointer bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg px-3 py-1.5 text-xs font-bold text-center shrink-0">
+                  📁 手機/電腦上傳截圖
+                  <input type="file" accept="image/*" multiple @change="handleEmergencyQrUpload" class="hidden">
+                </label>
+              </div>
+            </div>
+
+            <!-- 飛機上填寫入境卡小抄 -->
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+              <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                <h4 class="text-xs font-black text-gray-800">✈️ 飛機上填寫入境卡必抄資訊</h4>
+                <button v-if="isEditor" @click="autoFillEntryCardFromTrip" class="text-[11px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2.5 py-1 rounded-lg transition-colors shadow-sm">
+                  ⚡ 從航班/住宿自動帶入
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">抵達航班號碼 Flight No.</label>
+                  <input v-if="isEditor" type="text" v-model="tripData.emergencyInfo.flightNo" placeholder="例: BR198 / JX800" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-black text-gray-800 outline-none focus:border-rose-400 uppercase">
+                  <p v-else class="text-sm font-black text-gray-800 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">{{ tripData.emergencyInfo.flightNo || '未填寫' }}</p>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">第一晚飯店電話 Hotel Phone</label>
+                  <input v-if="isEditor" type="text" v-model="tripData.emergencyInfo.hotelPhone" placeholder="例: +81-3-1234-5678" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-black text-gray-800 outline-none focus:border-rose-400">
+                  <p v-else class="text-sm font-black text-gray-800 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">{{ tripData.emergencyInfo.hotelPhone || '未填寫' }}</p>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">第一晚飯店英文名稱 Hotel Name</label>
+                <input v-if="isEditor" type="text" v-model="tripData.emergencyInfo.hotelName" placeholder="輸入飯店名稱 (建議英文)" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-black text-gray-800 outline-none focus:border-rose-400">
+                <p v-else class="text-sm font-black text-gray-800 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">{{ tripData.emergencyInfo.hotelName || '未填寫' }}</p>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">第一晚飯店英文地址 Hotel Address</label>
+                <textarea v-if="isEditor" v-model="tripData.emergencyInfo.hotelAddress" rows="2" placeholder="輸入飯店完整地址 (填寫紙本入境卡超方便)" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-800 outline-none focus:border-rose-400 resize-none"></textarea>
+                <p v-else class="text-xs font-bold text-gray-800 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 whitespace-pre-line">{{ tripData.emergencyInfo.hotelAddress || '未填寫' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分頁 2：緊急聯絡 & 保險 -->
+          <div v-if="emergencyTab === 'sos'" class="p-5 overflow-y-auto hide-scrollbar flex-1 bg-gray-50 space-y-4">
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+              <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                <h4 class="text-xs font-black text-gray-800">🚨 當地緊急電話 ＆ 駐外館處</h4>
+                <button v-if="isEditor" @click="autoFillEmergencyByDestination" class="text-[11px] font-bold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded-lg transition-colors shadow-sm">
+                  ⚡ 依目的地自動帶入預設電話
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div class="bg-red-50/60 p-3 rounded-xl border border-red-100">
+                  <label class="block text-[10px] font-bold text-red-500 mb-1">🚓 當地報警電話</label>
+                  <input v-if="isEditor" type="text" v-model="tripData.emergencyInfo.policeTel" placeholder="例: 110" class="w-full bg-white border border-red-200 rounded-lg px-2.5 py-1 text-base font-black text-red-700 outline-none">
+                  <a v-else-if="tripData.emergencyInfo.policeTel" :href="'tel:' + tripData.emergencyInfo.policeTel" class="text-lg font-black text-red-700 hover:underline flex items-center gap-1">📞 {{ tripData.emergencyInfo.policeTel }}</a>
+                  <span v-else class="text-sm font-bold text-gray-400">未設定</span>
+                </div>
+                <div class="bg-red-50/60 p-3 rounded-xl border border-red-100">
+                  <label class="block text-[10px] font-bold text-red-500 mb-1">🚑 當地救護車 / 火警</label>
+                  <input v-if="isEditor" type="text" v-model="tripData.emergencyInfo.ambulanceTel" placeholder="例: 119" class="w-full bg-white border border-red-200 rounded-lg px-2.5 py-1 text-base font-black text-red-700 outline-none">
+                  <a v-else-if="tripData.emergencyInfo.ambulanceTel" :href="'tel:' + tripData.emergencyInfo.ambulanceTel" class="text-lg font-black text-red-700 hover:underline flex items-center gap-1">📞 {{ tripData.emergencyInfo.ambulanceTel }}</a>
+                  <span v-else class="text-sm font-bold text-gray-400">未設定</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">🇹🇼 台灣駐當地代表處 / 急難救助電話</label>
+                <input v-if="isEditor" type="text" v-model="tripData.emergencyInfo.embassyInfo" placeholder="例: 駐日代表處 +81-3-3280-7811 / 旅外國人急難救助 +886-800-085-095" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-800 outline-none focus:border-red-400">
+                <p v-else class="text-xs font-bold text-gray-800 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">{{ tripData.emergencyInfo.embassyInfo || '未填寫（全球免付費急難救助專線：+886-800-085-095）' }}</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+              <h4 class="text-xs font-black text-gray-800 border-b border-gray-100 pb-2">🛡️ 旅平險 ＆ 信用卡掛失 / 緊急備忘</h4>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">保險公司、保單號碼與海外救援專線</label>
+                <input v-if="isEditor" type="text" v-model="tripData.emergencyInfo.insuranceInfo" placeholder="例: 富邦產險 保單號碼XXX / 海外急難救助電話..." class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-800 outline-none focus:border-red-400">
+                <p v-else class="text-xs font-bold text-gray-800 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">{{ tripData.emergencyInfo.insuranceInfo || '未填寫' }}</p>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">其他緊急備忘 (護照備份位置、家人聯絡電話、過敏藥物等)</label>
+                <textarea v-if="isEditor" v-model="tripData.emergencyInfo.memo" rows="3" placeholder="輸入其他重要緊急備忘事項..." class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-800 outline-none focus:border-red-400 resize-y"></textarea>
+                <p v-else class="text-xs font-bold text-gray-700 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 whitespace-pre-line">{{ tripData.emergencyInfo.memo || '無特別備註' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-5 py-3 border-t border-gray-100 bg-white flex justify-end shrink-0">
+            <button @click="showEmergencyModal = false" class="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-sm transition-colors">完成</button>
           </div>
         </div>
       </div>
@@ -1134,6 +1295,33 @@
                        </div>
                     </div>
                   </div>
+
+                  <!-- v59: 總行程 / 唯讀模式的「雨天備案 & 候補口袋名單」摺疊卡片 -->
+                  <div v-if="day.backups && day.backups.length > 0" class="mt-4">
+                    <button @click="day.showBackups = !day.showBackups" class="w-full flex items-center justify-between bg-amber-50/90 hover:bg-amber-100/80 border border-amber-200/80 text-amber-800 px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-black transition-all shadow-sm">
+                      <span class="flex items-center gap-2">
+                        <span>☔</span>
+                        <span>當日雨天備案 ＆ 候補口袋名單</span>
+                        <span class="bg-amber-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">{{ day.backups.length }}</span>
+                      </span>
+                      <span class="text-xs font-bold">{{ day.showBackups ? '▲ 收合' : '▼ 展開查看' }}</span>
+                    </button>
+                    <div v-show="day.showBackups" class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2.5 pl-1">
+                      <div v-for="bk in day.backups" :key="bk.id" class="bg-white border border-amber-200/80 rounded-xl p-3 shadow-sm flex items-start justify-between gap-2 relative">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-1.5 mb-1">
+                            <span class="text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">{{ bk.tag || '☔ 雨天備案' }}</span>
+                            <a v-if="bk.link" :href="bk.link" target="_blank" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 hover:bg-blue-100">🔗 介紹/食記</a>
+                          </div>
+                          <h5 class="font-black text-gray-800 text-sm md:text-base break-words">{{ bk.title || '未命名候補點' }}</h5>
+                          <p v-if="bk.memo" class="text-xs text-gray-500 font-bold mt-1 whitespace-pre-line">{{ bk.memo }}</p>
+                        </div>
+                        <a v-if="bk.map" :href="bk.map" target="_blank" class="shrink-0 w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shadow-sm transition-transform hover:scale-105" title="開啟地圖導航">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 -ml-0.5 mt-0.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1404,6 +1592,64 @@
               </div>
             </div>
             <button @click="addItem(activeDayTab)" class="mt-4 w-full text-xs md:text-sm theme-text font-bold border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg py-2.5 hover:bg-gray-100 transition-colors focus-theme">＋ 加入行程</button>
+
+            <!-- v59: 單日編輯模式的「雨天備案 & 候補口袋名單」專區 -->
+            <div class="mt-6 pt-5 border-t border-dashed border-gray-200">
+              <div class="flex items-center justify-between bg-amber-50/80 border border-amber-200/80 rounded-xl px-4 py-3 cursor-pointer hover:bg-amber-100/60 transition-colors" @click="tripData.itinerary[activeDayTab].showBackups = !tripData.itinerary[activeDayTab].showBackups">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">☔</span>
+                  <div>
+                    <h4 class="text-xs md:text-sm font-black text-amber-900 flex items-center gap-1.5">
+                      當日雨天備案 ＆ 候補口袋名單
+                      <span class="bg-amber-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">{{ tripData.itinerary[activeDayTab].backups ? tripData.itinerary[activeDayTab].backups.length : 0 }}</span>
+                    </h4>
+                    <p class="text-[10px] font-bold text-amber-700/80">不佔用時間軸，可放候補餐廳或雨天室內景點，隨時一鍵轉入正式行程</p>
+                  </div>
+                </div>
+                <span class="text-xs font-black text-amber-800">{{ tripData.itinerary[activeDayTab].showBackups ? '▲ 收合' : '▼ 展開編輯' }}</span>
+              </div>
+
+              <div v-show="tripData.itinerary[activeDayTab].showBackups" class="mt-3 space-y-2.5 bg-amber-50/30 border border-amber-100 rounded-xl p-3">
+                <div v-if="!tripData.itinerary[activeDayTab].backups || tripData.itinerary[activeDayTab].backups.length === 0" class="text-center py-5 text-xs font-bold text-gray-400 bg-white border border-dashed border-amber-200 rounded-xl">
+                  尚未新增任何雨天備案或口袋名單
+                </div>
+
+                <div v-for="(bk, bIdx) in tripData.itinerary[activeDayTab].backups" :key="bk.id" class="bg-white border border-amber-200 rounded-xl p-3 shadow-sm space-y-2">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <select v-model="bk.tag" class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-2 py-1 text-xs font-black outline-none cursor-pointer">
+                      <option value="☔ 雨天備案">☔ 雨天備案</option>
+                      <option value="🍽️ 候補美食">🍽️ 候補美食</option>
+                      <option value="💡 口袋景點">💡 口袋景點</option>
+                      <option value="🛍️ 順路逛逛">🛍️ 順路逛逛</option>
+                    </select>
+                    <input type="text" v-model="bk.title" placeholder="輸入候補景點或餐廳名稱..." class="flex-1 min-w-[140px] bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1 text-xs md:text-sm font-black text-gray-800 outline-none focus:border-amber-400">
+                    <button @click="promoteBackupToItinerary(activeDayTab, bIdx)" class="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm transition-colors shrink-0" title="將此備案加入當日正式行程時間軸">
+                      ⬆️ 轉入正式行程
+                    </button>
+                    <button @click="removeDayBackup(activeDayTab, bIdx)" class="text-gray-300 hover:text-red-500 w-6 h-6 flex items-center justify-center font-bold text-xs shrink-0" title="刪除">✕</button>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div class="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+                      <span class="text-xs">📍</span>
+                      <input type="text" v-model="bk.map" placeholder="Google Maps 導航網址" class="w-full bg-transparent text-[11px] font-bold text-gray-700 outline-none">
+                    </div>
+                    <div class="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+                      <span class="text-xs">🔗</span>
+                      <input type="text" v-model="bk.link" placeholder="食記 / 官網連結 (選填)" class="w-full bg-transparent text-[11px] font-bold text-gray-700 outline-none">
+                    </div>
+                    <div class="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+                      <span class="text-xs">📝</span>
+                      <input type="text" v-model="bk.memo" placeholder="備註 (例: 必點菜色、公休日)" class="w-full bg-transparent text-[11px] font-bold text-gray-700 outline-none">
+                    </div>
+                  </div>
+                </div>
+
+                <button @click="addDayBackup(activeDayTab)" class="w-full py-2 bg-white hover:bg-amber-50 text-amber-700 border border-dashed border-amber-300 rounded-xl text-xs font-black transition-colors shadow-sm">
+                  ＋ 新增當日雨天備案 / 口袋名單
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2067,6 +2313,158 @@
           </div>
         </div>
 
+        <!-- ==================== 【必買伴手禮 & 代購清單模組 (v56 新增)】 ==================== -->
+        <div v-if="currentView === '購物'" class="space-y-4">
+          <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-2 md:mb-4 px-2 md:px-0">
+            <div>
+              <h2 class="text-xl md:text-2xl font-black text-gray-800">🛍️ 必買伴手禮 ＆ 代購清單</h2>
+              <p class="text-[10px] md:text-xs text-gray-500 font-bold mt-0.5">點擊商品圖片可全螢幕放大直接拿給店員看，並自動統計預估總額</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="bg-pink-50 border border-pink-200 px-3 py-1.5 rounded-xl flex items-center gap-3 shadow-sm">
+                <div class="flex flex-col">
+                  <span class="text-[10px] font-bold text-pink-500">已購進度</span>
+                  <span class="text-xs md:text-sm font-black text-pink-700">{{ shoppingStats.checkedCount }} / {{ shoppingStats.totalCount }} 件</span>
+                </div>
+                <div class="h-6 w-px bg-pink-200"></div>
+                <div class="flex flex-col text-right">
+                  <span class="text-[10px] font-bold text-pink-500">預估總計 (TWD)</span>
+                  <span class="text-xs md:text-sm font-black text-pink-700">{{ formatCurrency(shoppingStats.totalTWD, 'TWD') }}</span>
+                </div>
+              </div>
+              <button v-if="isEditor" @click="addShoppingItem" class="bg-pink-500 hover:bg-pink-600 text-white px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold shadow transition-all flex items-center gap-1">
+                <span class="text-lg leading-none">+</span> <span>新增必買</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 篩選列：全部 / 自用或代購對象 -->
+          <div v-if="tripData.shoppingList && tripData.shoppingList.length > 0" class="flex gap-1.5 overflow-x-auto hide-scrollbar px-2 md:px-0 pb-1">
+            <button @click="shoppingFilter = 'ALL'" :class="['px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm', shoppingFilter === 'ALL' ? 'bg-pink-500 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']">
+              📋 全部 ({{ tripData.shoppingList.length }})
+            </button>
+            <button @click="shoppingFilter = 'UNCHECKED'" :class="['px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm', shoppingFilter === 'UNCHECKED' ? 'bg-pink-500 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']">
+              🛒 尚未購買 ({{ tripData.shoppingList.filter(i => !i.isChecked).length }})
+            </button>
+            <button v-for="owner in shoppingOwners" :key="owner" @click="shoppingFilter = owner" :class="['px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm', shoppingFilter === owner ? 'bg-pink-500 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']">
+              🏷️ {{ owner }}
+            </button>
+          </div>
+
+          <div v-if="!tripData.shoppingList || tripData.shoppingList.length === 0" class="text-center py-12 bg-white rounded-2xl border border-gray-200 mx-2 md:mx-0">
+            <div class="text-4xl mb-2">🛍️</div>
+            <p class="text-gray-400 font-bold mb-4">尚未新增任何必買伴手禮或代購商品</p>
+            <button v-if="isEditor" @click="addShoppingItem" class="text-pink-500 font-bold hover:underline">👉 點此新增第一樣必買商品</button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-2 md:px-0">
+            <div v-for="(item, idx) in filteredShoppingList" :key="item.id" class="bg-white rounded-2xl shadow-sm border transition-all overflow-hidden flex flex-col relative group" :class="item.isChecked ? 'border-gray-200 bg-gray-50/70 opacity-85' : 'border-pink-100 hover:shadow-md'">
+              
+              <!-- 右上角控制按鈕 -->
+              <div v-if="isEditor" class="absolute top-3 right-3 flex gap-1.5 z-20">
+                <button v-if="item.isLocked" @click="item.isLocked = false" class="bg-white/90 hover:bg-white text-gray-600 w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-sm border border-gray-200" title="編輯">✏️</button>
+                <button v-if="!item.isLocked" @click="item.isLocked = true" class="bg-pink-500 hover:bg-pink-600 text-white w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-sm" title="完成">💾</button>
+                <button @click="removeShoppingItem(item.id)" class="bg-white/90 hover:bg-red-500 text-gray-400 hover:text-white w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-sm border border-gray-200 transition-colors" title="刪除">✕</button>
+              </div>
+
+              <!-- 主卡片區：左圖右文 -->
+              <div class="p-4 flex gap-3.5 items-start">
+                <!-- 商品縮圖 (點擊放大給店員看) -->
+                <div class="w-24 h-24 md:w-28 md:h-28 rounded-xl overflow-hidden bg-pink-50/50 border border-pink-100 shrink-0 flex flex-col items-center justify-center relative group/simg">
+                  <template v-if="item.images && item.images.length > 0">
+                    <img :src="item.images[0]" @click="activeImage = { list: item.images, index: 0 }" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300">
+                    <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded pointer-events-none">🔍 放大</span>
+                    <button v-if="isEditor && !item.isLocked" @click.stop="item.images.splice(0, 1)" class="absolute top-1 left-1 bg-black/60 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">✕</button>
+                  </template>
+                  <template v-else>
+                    <span class="text-3xl opacity-30">🎁</span>
+                    <label v-if="isEditor && !item.isLocked" class="mt-1 cursor-pointer bg-white hover:bg-pink-50 text-pink-600 border border-pink-200 rounded px-2 py-0.5 text-[10px] font-bold shadow-sm">
+                      ＋傳圖
+                      <input type="file" accept="image/*" multiple @change="handleImageUpload($event, item)" class="hidden">
+                    </label>
+                  </template>
+                </div>
+
+                <!-- 右側商品資訊 -->
+                <div class="flex-1 min-w-0 pr-14">
+                  <div class="flex items-center gap-2 mb-1">
+                    <input type="checkbox" v-model="item.isChecked" class="w-4 h-4 accent-pink-500 rounded cursor-pointer shrink-0">
+                    <span v-if="item.isChecked" class="text-[10px] font-black bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ 已購買</span>
+                    <template v-if="isEditor && !item.isLocked">
+                      <input type="text" v-model="item.forWho" placeholder="幫誰買 (例: 自用 / 媽媽)" class="bg-pink-50 border border-pink-200 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-pink-700 outline-none w-32">
+                    </template>
+                    <span v-else-if="item.forWho" class="text-[11px] font-bold bg-pink-50 text-pink-700 border border-pink-200 px-2 py-0.5 rounded-full truncate">🏷️ {{ item.forWho }}</span>
+                  </div>
+
+                  <input v-if="isEditor && !item.isLocked" type="text" v-model="item.name" placeholder="輸入必買商品名稱 (例: 合利他命 EX Plus)" class="w-full font-black text-base md:text-lg text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1 outline-none focus:border-pink-400">
+                  <h3 v-else class="font-black text-base md:text-lg leading-snug break-words" :class="item.isChecked ? 'line-through text-gray-400' : 'text-gray-800'">{{ item.name || '未命名商品' }}</h3>
+
+                  <!-- 購買地點與數量 -->
+                  <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <template v-if="isEditor && !item.isLocked">
+                      <div class="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+                        <span>📍</span>
+                        <input type="text" v-model="item.store" placeholder="哪裡買 (例: 唐吉訶德/藥妝店)" class="bg-transparent outline-none font-bold text-gray-700 w-32 md:w-36 text-xs">
+                      </div>
+                      <div class="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+                        <span class="text-gray-500 font-bold">數量:</span>
+                        <input type="number" min="1" v-model.number="item.qty" class="w-10 bg-white border border-gray-200 rounded text-center font-black text-gray-800 outline-none">
+                      </div>
+                    </template>
+                    <template v-else>
+                      <span v-if="item.store" class="bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-md">📍 {{ item.store }}</span>
+                      <span class="bg-pink-50 text-pink-700 font-black px-2 py-0.5 rounded-md border border-pink-100">數量 × {{ item.qty || 1 }}</span>
+                    </template>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 編輯展開區：價格、匯率、圖片網址與備註 -->
+              <div v-if="isEditor && !item.isLocked" class="px-4 pb-4 pt-2 border-t border-dashed border-pink-100 bg-pink-50/20 space-y-2.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <select v-model="item.currency" @change="updateShoppingExchangeRate(item)" class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-700 outline-none">
+                    <option v-for="curr in currencyList" :key="curr.code" :value="curr.code">{{ curr.flag }} {{ curr.name }} ({{ curr.code }})</option>
+                  </select>
+                  <input type="number" v-model.number="item.price" :placeholder="`預估單價 (${item.currency})`" class="flex-1 min-w-[110px] bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs font-black text-gray-800 outline-none focus:border-pink-400">
+                  <div v-if="item.currency !== 'TWD'" class="flex items-center gap-1 text-[11px] font-bold text-gray-500">
+                    <span>匯率:</span>
+                    <input type="number" step="0.0001" v-model.number="item.exchangeRate" class="w-16 bg-white border border-gray-200 rounded px-1.5 py-0.5 text-xs font-bold text-gray-700 outline-none">
+                  </div>
+                </div>
+
+                <!-- 圖片網址或補傳圖片 -->
+                <div class="flex flex-col sm:flex-row gap-1.5">
+                  <div class="flex flex-1 gap-1">
+                    <input type="text" v-model="item.tempImageUrl" placeholder="貼上商品圖片網址..." class="flex-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-pink-400">
+                    <button @click="addImageUrlToItem(item)" class="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded-lg text-xs font-bold shrink-0">加入圖片</button>
+                  </div>
+                  <label class="cursor-pointer bg-white hover:bg-pink-50 text-pink-600 border border-pink-200 rounded-lg px-2.5 py-1 text-xs font-bold text-center shrink-0">
+                    📁 手機/電腦傳圖
+                    <input type="file" accept="image/*" multiple @change="handleImageUpload($event, item)" class="hidden">
+                  </label>
+                </div>
+
+                <input type="text" v-model="item.memo" placeholder="備註 (例: 限定口味、免稅價、型號容量...)" class="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-gray-600 outline-none focus:border-pink-400">
+              </div>
+
+              <!-- 底部金額與備註列 -->
+              <div class="px-4 py-2.5 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between mt-auto">
+                <div class="text-xs text-gray-500 font-bold truncate pr-2">
+                  <span v-if="item.memo">📝 {{ item.memo }}</span>
+                  <span v-else class="text-gray-300">無特別備註</span>
+                </div>
+                <div class="text-right shrink-0 flex flex-col items-end">
+                  <span class="text-sm md:text-base font-black text-gray-900">{{ formatCurrency(calculateShoppingItemTWD(item), 'TWD') }}</span>
+                  <span v-if="item.currency !== 'TWD' && item.price" class="text-[10px] font-bold text-gray-400">
+                    外幣: {{ formatCurrency((Number(item.price) || 0) * (Number(item.qty) || 1), item.currency) }}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
         <!-- ==================== 【花費模組 (維持原樣保護安全)】 ==================== -->
         <div v-if="currentView === '花費'" class="space-y-4 relative">
           <div class="flex justify-between items-center mb-2 md:mb-4 px-2 md:px-0">
@@ -2287,7 +2685,7 @@
         const isSetup = ref(false); 
         const saveStatus = ref('');
         let saveTimeout = null;
-        const tabs = ['行程', '航班', '交通', '住宿', '行李', '花費'];
+        const tabs = ['行程', '航班', '交通', '住宿', '行李', '購物', '花費'];
         const dayPalette = ['#0ea5e9', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#14b8a6'];
         const currentView = ref('行程');
         const activeDayTab = ref('overview');
@@ -2363,8 +2761,24 @@
         const showWeatherModal = ref(false);
         const showCompanionModal = ref(false);
         const showMarqueeModal = ref(false);
+        const showEmergencyModal = ref(false);
+        const emergencyTab = ref('entry');
         const nowTick = ref(Date.now());
         setInterval(() => { nowTick.value = Date.now(); }, 15000);
+
+        const createDefaultEmergencyInfo = () => ({
+          qrImages: [],
+          tempQrUrl: '',
+          flightNo: '',
+          hotelName: '',
+          hotelPhone: '',
+          hotelAddress: '',
+          policeTel: '110',
+          ambulanceTel: '119',
+          embassyInfo: '',
+          insuranceInfo: '',
+          memo: ''
+        });
 
         const createDefaultMarquee = () => ({
           bgColor: '#fef08a',
@@ -2413,7 +2827,8 @@
                  Boolean(activeAccModalType.value) || // 新增住宿 Modal 監控
                  showWeatherModal.value ||
                  showCompanionModal.value ||
-                 showMarqueeModal.value;
+                 showMarqueeModal.value ||
+                 showEmergencyModal.value;
         });
 
         watch(isAnyModalOpen, (isOpen) => {
@@ -2426,16 +2841,78 @@
           }
         });
 
-        const setupData = ref({ name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true, marquee: true } });
+        const setupData = ref({ name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true } });
         
         const tripData = ref({
           ownerId: '', tripName: '未命名行程', destination: '', startDate: '', endDate: '', themeColor: '#e91e63',
-          coEditors: [], companions: ['我', '盈瑜'], memberList: [], marquee: createDefaultMarquee(), itinerary: [], expenses: [],
+          coEditors: [], companions: ['我', '盈瑜'], memberList: [], marquee: createDefaultMarquee(), emergencyInfo: createDefaultEmergencyInfo(), itinerary: [], expenses: [],
           expenseSettings: { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' },
           coverImage: '',
-          modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true, marquee: true },
-          flights: [], transports: [], accommodations: [], luggage: []
+          modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true },
+          flights: [], transports: [], accommodations: [], luggage: [], shoppingList: []
         });
+
+        const shoppingFilter = ref('ALL');
+
+        const openEmergencyModal = () => {
+          if (!tripData.value.emergencyInfo) tripData.value.emergencyInfo = createDefaultEmergencyInfo();
+          if (!Array.isArray(tripData.value.emergencyInfo.images)) tripData.value.emergencyInfo.images = [];
+          showEmergencyModal.value = true;
+        };
+
+        const syncEntryCardFromTrip = () => {
+          if (!tripData.value.emergencyInfo) tripData.value.emergencyInfo = createDefaultEmergencyInfo();
+          if (tripData.value.flights && tripData.value.flights.length > 0) {
+            const f = tripData.value.flights[0];
+            tripData.value.emergencyInfo.arrivalFlight = [f.airline, f.bookingRef].filter(Boolean).join(' ');
+          }
+          if (tripData.value.accommodations && tripData.value.accommodations.length > 0) {
+            const h = tripData.value.accommodations[0];
+            if (h.name) tripData.value.emergencyInfo.firstHotelName = h.name;
+            if (h.phone) tripData.value.emergencyInfo.firstHotelPhone = h.phone;
+            if (h.address) tripData.value.emergencyInfo.firstHotelAddress = h.address;
+          }
+          saveStatus.value = '✅ 已帶入航班與第一晚住宿';
+          setTimeout(() => { if (saveStatus.value.includes('已帶入')) saveStatus.value = ''; }, 2500);
+        };
+
+        const autoFillEmergencyPreset = () => {
+          if (!tripData.value.emergencyInfo) tripData.value.emergencyInfo = createDefaultEmergencyInfo();
+          const d = (tripData.value.destination || '').toUpperCase();
+          if (d.includes('日') || d.includes('東京') || d.includes('大阪') || d.includes('沖繩') || d.includes('北海道') || d.includes('京都') || d.includes('福岡')) {
+            tripData.value.emergencyInfo.policeTel = '110';
+            tripData.value.emergencyInfo.ambulanceTel = '119';
+            tripData.value.emergencyInfo.embassyName = '台北駐日經濟文化代表處';
+            tripData.value.emergencyInfo.embassyTel = '+81-80-1009-7179';
+          } else if (d.includes('韓') || d.includes('首爾') || d.includes('釜山') || d.includes('濟州')) {
+            tripData.value.emergencyInfo.policeTel = '112';
+            tripData.value.emergencyInfo.ambulanceTel = '119';
+            tripData.value.emergencyInfo.embassyName = '駐韓國台北代表部';
+            tripData.value.emergencyInfo.embassyTel = '+82-10-9080-2761';
+          } else if (d.includes('泰') || d.includes('曼谷') || d.includes('清邁')) {
+            tripData.value.emergencyInfo.policeTel = '191 (觀光警察 1155)';
+            tripData.value.emergencyInfo.ambulanceTel = '1669';
+            tripData.value.emergencyInfo.embassyName = '駐泰國台北經濟文化辦事處';
+            tripData.value.emergencyInfo.embassyTel = '+66-81-666-4006';
+          } else if (d.includes('美') || d.includes('紐約') || d.includes('洛杉磯')) {
+            tripData.value.emergencyInfo.policeTel = '911';
+            tripData.value.emergencyInfo.ambulanceTel = '911';
+            tripData.value.emergencyInfo.embassyName = '駐美國代表處急難救助';
+            tripData.value.emergencyInfo.embassyTel = '+1-202-669-0180';
+          } else if (d.includes('歐') || d.includes('法') || d.includes('德') || d.includes('義') || d.includes('荷') || d.includes('瑞')) {
+            tripData.value.emergencyInfo.policeTel = '112';
+            tripData.value.emergencyInfo.ambulanceTel = '112';
+            tripData.value.emergencyInfo.embassyName = '旅外國人急難救助全球專線';
+            tripData.value.emergencyInfo.embassyTel = '+886-800-085-095';
+          } else {
+            tripData.value.emergencyInfo.policeTel = '110';
+            tripData.value.emergencyInfo.ambulanceTel = '119';
+            tripData.value.emergencyInfo.embassyName = '外交部旅外急難救助專線';
+            tripData.value.emergencyInfo.embassyTel = '+886-800-085-095';
+          }
+          saveStatus.value = '✅ 已帶入當地緊急電話';
+          setTimeout(() => { if (saveStatus.value.includes('已帶入')) saveStatus.value = ''; }, 2500);
+        };
 
         const isMarqueeItemActive = (item) => {
           void nowTick.value;
@@ -2536,13 +3013,14 @@
 
         const visibleTabs = computed(() => {
           let currentTabs = [];
-          const m = tripData.value.modules || { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true };
+          const m = tripData.value.modules || { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true };
           
           if (m.itinerary) currentTabs.push('行程');
           if (m.flights) currentTabs.push('航班');
           if (m.transports) currentTabs.push('交通');
           if (m.accommodations) currentTabs.push('住宿');
           if (m.luggage) currentTabs.push('行李');
+          if (m.shopping !== false) currentTabs.push('購物');
           
           // 花費模組的雙層鎖：第一層看設定有沒有開，第二層看是不是編輯者或有沒有公開
           if (m.expenses) {
@@ -2968,13 +3446,13 @@
           currentTripId.value = null; 
           tripData.value = { 
             ownerId: currentUser.value.uid, tripName: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', 
-            coEditors: [], companions: ['我', '盈瑜'], memberList: [], marquee: createDefaultMarquee(), itinerary: [], expenses: [],
+            coEditors: [], companions: ['我', '盈瑜'], memberList: [], marquee: createDefaultMarquee(), emergencyInfo: createDefaultEmergencyInfo(), itinerary: [], expenses: [],
             expenseSettings: { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' },
             coverImage: '',
-            modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true, marquee: true },
-            flights: [], transports: [], accommodations: [], luggage: []
+            modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true },
+            flights: [], transports: [], accommodations: [], luggage: [], shoppingList: []
           };
-          setupData.value = { name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true, marquee: true } };
+          setupData.value = { name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true } };
           isEditor.value = true; appState.value = 'TRIP'; isSetup.value = true;
           nextTick(() => {
             try {
@@ -2987,6 +3465,125 @@
               }
             } catch(e){}
           });
+        };
+
+        // --- v58: 複製整個行程功能 (模板概念) ---
+        const duplicateTrip = (sourceTrip) => {
+          if (!currentUser.value) return customAlert("請先登入才能複製行程喔！");
+          const newName = `${sourceTrip.tripName || '未命名行程'} (副本)`;
+          customConfirm(`確定要複製「${sourceTrip.tripName || '未命名行程'}」並建立新行程嗎？\n\n系統會完整複製所有天數行程、住宿、交通、行李與購物清單（並自動重置勾選狀態）。`, async () => {
+            try {
+              const cloned = JSON.parse(JSON.stringify(sourceTrip));
+              delete cloned.id;
+              cloned.ownerId = currentUser.value.uid;
+              cloned.tripName = newName;
+              cloned.coEditors = [];
+
+              // 重置行李清單與購物清單的勾選狀態，方便新旅程直接使用
+              if (Array.isArray(cloned.luggage)) {
+                cloned.luggage.forEach(cat => {
+                  if (Array.isArray(cat.items)) cat.items.forEach(item => item.isChecked = false);
+                });
+              }
+              if (Array.isArray(cloned.shoppingList)) {
+                cloned.shoppingList.forEach(item => item.isChecked = false);
+              }
+
+              const newTripId = Math.random().toString(36).substr(2, 10);
+              await setDoc(doc(db, "trips", newTripId), cloned);
+              await fetchMyTrips();
+              customAlert(`✅ 已成功複製並建立「${newName}」！\n您可以點進該行程修改新的出發日期。`);
+            } catch (e) {
+              console.error("Duplicate Error:", e);
+              customAlert("複製行程失敗，請稍後再試。");
+            }
+          });
+        };
+
+        // --- v57/v58: 入境卡小抄 & 緊急資訊輔助函式 ---
+        const addEmergencyQrUrl = () => {
+          if (!tripData.value.emergencyInfo) tripData.value.emergencyInfo = createDefaultEmergencyInfo();
+          const url = (tripData.value.emergencyInfo.tempQrUrl || '').trim();
+          if (url) {
+            if (!Array.isArray(tripData.value.emergencyInfo.qrImages)) tripData.value.emergencyInfo.qrImages = [];
+            tripData.value.emergencyInfo.qrImages.push(url);
+            tripData.value.emergencyInfo.tempQrUrl = '';
+          }
+        };
+
+        const handleEmergencyQrUpload = async (e) => {
+          const files = e.target.files; if (!files || files.length === 0) return;
+          if (!tripData.value.emergencyInfo) tripData.value.emergencyInfo = createDefaultEmergencyInfo();
+          saveStatus.value = 'QR 截圖上傳中... ⏳';
+          for (const file of Array.from(files)) {
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('key', '722bc54189bddc68e1f3a24d1c02d6de');
+            try {
+              const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+              const data = await res.json();
+              if (data.success) {
+                if (!Array.isArray(tripData.value.emergencyInfo.qrImages)) tripData.value.emergencyInfo.qrImages = [];
+                tripData.value.emergencyInfo.qrImages.push(data.data.url);
+              } else {
+                customAlert("圖片上傳失敗：" + (data.error?.message || '未知錯誤'));
+              }
+            } catch (err) {
+              customAlert("上傳發生錯誤，請稍後再試。");
+              break;
+            }
+          }
+          saveStatus.value = '上傳完成 ✅';
+          e.target.value = '';
+          setTimeout(() => { if (saveStatus.value.includes('上傳')) saveStatus.value = ''; }, 3000);
+        };
+
+        const autoFillEntryCardFromTrip = () => {
+          if (!tripData.value.emergencyInfo) tripData.value.emergencyInfo = createDefaultEmergencyInfo();
+          const firstFlight = tripData.value.flights?.[0];
+          const firstHotel = tripData.value.accommodations?.[0];
+          if (firstFlight) {
+            tripData.value.emergencyInfo.flightNo = firstFlight.bookingRef || firstFlight.flightNo || tripData.value.emergencyInfo.flightNo;
+          }
+          if (firstHotel) {
+            tripData.value.emergencyInfo.hotelName = firstHotel.name || tripData.value.emergencyInfo.hotelName;
+            tripData.value.emergencyInfo.hotelPhone = firstHotel.phone || tripData.value.emergencyInfo.hotelPhone;
+            tripData.value.emergencyInfo.hotelAddress = firstHotel.address || tripData.value.emergencyInfo.hotelAddress;
+          }
+          saveStatus.value = '✅ 已帶入航班與第一晚住宿資料';
+          setTimeout(() => { if (saveStatus.value.includes('已帶入')) saveStatus.value = ''; }, 2500);
+        };
+
+        const autoFillEmergencyByDestination = () => {
+          if (!tripData.value.emergencyInfo) tripData.value.emergencyInfo = createDefaultEmergencyInfo();
+          const dest = (tripData.value.destination || '').toUpperCase();
+          if (dest.includes('日') || dest.includes('東京') || dest.includes('大阪') || dest.includes('沖繩') || dest.includes('北海道') || dest.includes('京都') || dest.includes('福岡')) {
+            tripData.value.emergencyInfo.policeTel = '110';
+            tripData.value.emergencyInfo.ambulanceTel = '119';
+            tripData.value.emergencyInfo.embassyInfo = '駐日代表處急難救助：+81-80-1009-7179 / 外交部旅外急難救助：+886-800-085-095';
+          } else if (dest.includes('韓') || dest.includes('首爾') || dest.includes('釜山') || dest.includes('濟州')) {
+            tripData.value.emergencyInfo.policeTel = '112';
+            tripData.value.emergencyInfo.ambulanceTel = '119';
+            tripData.value.emergencyInfo.embassyInfo = '駐韓國代表處急難救助：+82-10-9080-2761 / 旅遊諮詢熱線：1330';
+          } else if (dest.includes('泰') || dest.includes('曼谷') || dest.includes('清邁')) {
+            tripData.value.emergencyInfo.policeTel = '191 (觀光警察 1155)';
+            tripData.value.emergencyInfo.ambulanceTel = '1669';
+            tripData.value.emergencyInfo.embassyInfo = '駐泰國代表處急難救助：+66-81-666-4006';
+          } else if (dest.includes('美') || dest.includes('紐約') || dest.includes('洛杉磯')) {
+            tripData.value.emergencyInfo.policeTel = '911';
+            tripData.value.emergencyInfo.ambulanceTel = '911';
+            tripData.value.emergencyInfo.embassyInfo = '旅外國人全球免付費專線：011-800-0885-0885';
+          } else if (dest.includes('歐') || dest.includes('法') || dest.includes('德') || dest.includes('義') || dest.includes('荷') || dest.includes('瑞')) {
+            tripData.value.emergencyInfo.policeTel = '112';
+            tripData.value.emergencyInfo.ambulanceTel = '112';
+            tripData.value.emergencyInfo.embassyInfo = '歐盟通用緊急電話：112 / 外交部全球專線：+886-800-085-095';
+          } else {
+            tripData.value.emergencyInfo.policeTel = '110';
+            tripData.value.emergencyInfo.ambulanceTel = '119';
+            tripData.value.emergencyInfo.embassyInfo = '外交部旅外國人急難救助全球專線：+886-800-085-095';
+          }
+          saveStatus.value = '✅ 已帶入當地緊急聯絡資訊';
+          setTimeout(() => { if (saveStatus.value.includes('已帶入')) saveStatus.value = ''; }, 2500);
         };
 
         const switchTab = (tab) => {
@@ -3009,17 +3606,22 @@
           if (docSnap.exists()) {
             const data = docSnap.data();
             if (!data.flights) data.flights = []; if (!data.transports) data.transports = []; if (!data.accommodations) data.accommodations = []; if (!data.luggage) data.luggage = [];
+            if (!data.shoppingList || !Array.isArray(data.shoppingList)) data.shoppingList = [];
             if (!data.coEditors || !Array.isArray(data.coEditors)) data.coEditors = [];
             if (!data.memberList || !Array.isArray(data.memberList)) data.memberList = [];
             if (!data.marquee || typeof data.marquee !== 'object') data.marquee = createDefaultMarquee();
             if (!Array.isArray(data.marquee.items)) data.marquee.items = [];
+            if (!data.emergencyInfo || typeof data.emergencyInfo !== 'object') data.emergencyInfo = createDefaultEmergencyInfo();
+            if (!Array.isArray(data.emergencyInfo.qrImages)) data.emergencyInfo.qrImages = [];
             
             if (!data.expenses) data.expenses = [];
-            if (!data.modules) data.modules = { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true, marquee: true };
+            if (!data.modules) data.modules = { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true };
             else {
                if (data.modules.itinerary === undefined) data.modules.itinerary = true;
                if (data.modules.companions === undefined) data.modules.companions = true;
                if (data.modules.marquee === undefined) data.modules.marquee = true;
+               if (data.modules.shopping === undefined) data.modules.shopping = true;
+               if (data.modules.emergency === undefined) data.modules.emergency = true;
             }
             if (!data.expenseSettings) { data.expenseSettings = { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' }; } 
             else { if (!data.expenseSettings.pax) data.expenseSettings.pax = { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }; if (data.expenseSettings.pax.elder === undefined) data.expenseSettings.pax.elder = 0; }
@@ -3043,6 +3645,8 @@
             if (data.itinerary) {
                data.itinerary.forEach((day, index) => {
                   if (!day.themeColor) day.themeColor = dayPalette[index % dayPalette.length];
+                  if (!Array.isArray(day.backups)) day.backups = [];
+                  if (day.showBackups === undefined) day.showBackups = false;
                   if (day.items && day.items.length === 1) {
                      const item = day.items[0];
                      if (!item.activity && !item.stay && item.startTime === '09:00') { day.items = []; day.transit = []; }
@@ -3146,7 +3750,7 @@
           setupData.value = { 
              name: tripData.value.tripName, destination: tripData.value.destination, startDate: tripData.value.startDate, endDate: tripData.value.endDate, themeColor: tripData.value.themeColor, coEditorsStr: (tripData.value.coEditors || []).join(', '),
              coverImage: tripData.value.coverImage || '',
-             modules: tripData.value.modules ? { companions: true, itinerary: true, marquee: true, ...JSON.parse(JSON.stringify(tripData.value.modules)) } : { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, expenses: true, marquee: true }
+             modules: tripData.value.modules ? { companions: true, itinerary: true, shopping: true, marquee: true, emergency: true, ...JSON.parse(JSON.stringify(tripData.value.modules)) } : { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true }
           };
           isSetup.value = true;
           nextTick(() => {
@@ -3186,12 +3790,72 @@
             if (i < tripData.value.itinerary.length) {
               tripData.value.itinerary[i].dateStr = dateStr;
               if (!tripData.value.itinerary[i].themeColor) tripData.value.itinerary[i].themeColor = themeColor;
+              if (!Array.isArray(tripData.value.itinerary[i].backups)) tripData.value.itinerary[i].backups = [];
+              if (tripData.value.itinerary[i].showBackups === undefined) tripData.value.itinerary[i].showBackups = false;
             }
             else {
-              tripData.value.itinerary.push({ dateStr, themeColor, items: [], transit: [] }); 
+              tripData.value.itinerary.push({ dateStr, themeColor, items: [], transit: [], backups: [], showBackups: false }); 
             }
           }
           isSetup.value = false;
+        };
+
+        // --- v59: 每日雨天備案 & 候補口袋名單邏輯 ---
+        const addDayBackup = (dayIdx) => {
+          const day = tripData.value.itinerary[dayIdx];
+          if (!Array.isArray(day.backups)) day.backups = [];
+          day.showBackups = true;
+          day.backups.push({
+            id: generateId(),
+            tag: '☔ 雨天備案',
+            title: '',
+            map: '',
+            link: '',
+            memo: ''
+          });
+        };
+
+        const removeDayBackup = (dayIdx, bIdx) => {
+          const day = tripData.value.itinerary[dayIdx];
+          if (day && Array.isArray(day.backups)) {
+            day.backups.splice(bIdx, 1);
+          }
+        };
+
+        const promoteBackupToItinerary = (dayIdx, bIdx) => {
+          const day = tripData.value.itinerary[dayIdx];
+          if (!day || !Array.isArray(day.backups) || !day.backups[bIdx]) return;
+          const bk = day.backups[bIdx];
+          const isFirstItem = day.items.length === 0;
+          const categoryMap = {
+            '☔ 雨天備案': '📸',
+            '🍽️ 候補美食': '🍽️',
+            '💡 口袋景點': '📸',
+            '🛍️️ 順路逛逛': '🛍️'
+          };
+          day.items.push({
+            id: generateId(),
+            startTime: isFirstItem ? '09:00' : '',
+            endTime: isFirstItem ? '10:00' : '',
+            activity: bk.title || '候補行程',
+            stay: 60,
+            showMenu: false,
+            images: false,
+            tempImageUrl: '',
+            isImportant: false,
+            category: categoryMap[bk.tag] || '🔵',
+            focus: 'center',
+            map: bk.map ? bk.map : false,
+            link: bk.link ? bk.link : false,
+            memo: bk.memo ? bk.memo : false
+          });
+          if (!isFirstItem) {
+            day.transit.push({ method: '地鐵/捷運', duration: 30, customMethod: '' });
+          }
+          day.backups.splice(bIdx, 1);
+          recalculateDay(dayIdx);
+          saveStatus.value = '✅ 已轉入當日正式行程';
+          setTimeout(() => { if (saveStatus.value === '✅ 已轉入當日正式行程') saveStatus.value = ''; }, 2500);
         };
 
         const formatDateRange = (start, end) => start && end ? `${start.replace(/-/g, '/')} ~ ${end.replace(/-/g, '/')}` : '';
@@ -3292,6 +3956,68 @@
             { name: '衣物與盥洗', items: [{id: generateId(), name: '換洗衣物', isChecked: false}, {id: generateId(), name: '外套/保暖衣物', isChecked: false}, {id: generateId(), name: '牙刷/牙膏', isChecked: false}] }
           ];
         };
+
+        // --- v56: 必買伴手禮 & 代購清單邏輯 ---
+        const addShoppingItem = () => {
+          if (!tripData.value.shoppingList) tripData.value.shoppingList = [];
+          const defaultCurrency = detectCurrencyByDestination(tripData.value.destination);
+          const defaultRate = availableRates.value[defaultCurrency] || 1;
+          tripData.value.shoppingList.push({
+            id: generateId(),
+            isLocked: false,
+            isChecked: false,
+            name: '',
+            store: '',
+            forWho: '自用',
+            qty: 1,
+            currency: defaultCurrency,
+            price: '',
+            exchangeRate: defaultRate,
+            memo: '',
+            images: [],
+            tempImageUrl: ''
+          });
+        };
+
+        const removeShoppingItem = (id) => {
+          customConfirm("確定要刪除這項必買商品嗎？", () => {
+            const idx = tripData.value.shoppingList.findIndex(i => i.id === id);
+            if (idx !== -1) tripData.value.shoppingList.splice(idx, 1);
+          });
+        };
+
+        const updateShoppingExchangeRate = (item) => {
+          item.exchangeRate = availableRates.value[item.currency] || 1;
+        };
+
+        const calculateShoppingItemTWD = (item) => {
+          const p = Number(item.price) || 0;
+          const q = Number(item.qty) || 1;
+          const r = (item.exchangeRate !== undefined && item.exchangeRate !== null) ? Number(item.exchangeRate) : 1;
+          return p * q * r;
+        };
+
+        const shoppingOwners = computed(() => {
+          const list = tripData.value.shoppingList || [];
+          const set = new Set();
+          list.forEach(i => { if (i.forWho && i.forWho.trim()) set.add(i.forWho.trim()); });
+          return Array.from(set);
+        });
+
+        const filteredShoppingList = computed(() => {
+          const list = tripData.value.shoppingList || [];
+          if (shoppingFilter.value === 'ALL') return list;
+          if (shoppingFilter.value === 'UNCHECKED') return list.filter(i => !i.isChecked);
+          return list.filter(i => (i.forWho || '').trim() === shoppingFilter.value);
+        });
+
+        const shoppingStats = computed(() => {
+          const list = tripData.value.shoppingList || [];
+          const totalCount = list.length;
+          const checkedCount = list.filter(i => i.isChecked).length;
+          const totalTWD = list.reduce((sum, i) => sum + calculateShoppingItemTWD(i), 0);
+          return { totalCount, checkedCount, totalTWD };
+        });
 
         const addItem = (dayIdx) => { 
           const day = tripData.value.itinerary[dayIdx];
@@ -3555,12 +4281,13 @@
         };
 
         return {
-          appState, currentUser, myTrips, createNewTrip, openTrip, backToDashboard, loginWithGoogle, guestLogin, logout, deleteTripFromCloud, copyShareLink,
+          appState, currentUser, myTrips, createNewTrip, duplicateTrip, openTrip, backToDashboard, loginWithGoogle, guestLogin, logout, deleteTripFromCloud, copyShareLink,
           isOwner, hasEditPermission, isEditor, isSetup, setupData, generateTrip, openSetup, closeSetup,
           saveStatus, shareStatus, tabs, visibleTabs, currentView, activeDayTab, tripData, formatDateRange, activeMemo, activeImage, shareDialog, copyToClipboard, exportToText, switchTab,
           currentWeather, forecast, weatherLoading, showWeatherModal,
           showCompanionModal, companionSummaryText, addMember, removeMember,
           showMarqueeModal, activeMarqueeText, isMarqueeItemActive, addMarqueeItem, removeMarqueeItem, applyMarqueePreset, setMarqueeDateToday, setMarqueeDateTrip,
+          showEmergencyModal, emergencyTab, addEmergencyQrUrl, handleEmergencyQrUpload, autoFillEntryCardFromTrip, autoFillEmergencyByDestination,
           handleTouchStart, handleTouchEnd, prevImage, nextImage,
           alertDialog, confirmDialog, customAlert, customConfirm,
           stayOptions, formatStayTime, toggleMenu, getTransitIcon, formatDuration,
@@ -3568,9 +4295,11 @@
           addFlight, removeFlight, moveFlightUp, moveFlightDown, addPassenger, removePassenger, searchFlightStatus,
           addTransport, removeTransport, moveTransportUp, moveTransportDown, addAccommodation, removeAccommodation, moveAccommodationUp, moveAccommodationDown, getHotelGradient,
           addLuggageCategory, removeLuggageCategory, addLuggageItem, removeLuggageItem, initDefaultLuggage,
+          shoppingFilter, addShoppingItem, removeShoppingItem, updateShoppingExchangeRate, calculateShoppingItemTWD, shoppingOwners, filteredShoppingList, shoppingStats,
           expenseCategories, currencyList, availableRates, updateExchangeRate,
           getCategoryIcon, getCategoryColor, getTypeLabel, getTypeColor, getMultiplier, calculateExpenseItemTotalForeign, calculateExpenseItemTotalTWD, totalExpense, expenseTotalsByCategory, pieChartStyle, addExpense, removeExpense, moveExpenseUp, moveExpenseDown, addExpenseDetail, removeExpenseDetail, formatCurrency,
           addItem, deleteItem, recalculateDay, userChangedStartTime, userChangedEndTime, openField,
+          addDayBackup, removeDayBackup, promoteBackupToItinerary,
           handleImageUpload, handleCoverUpload, addImageUrl, addImageUrlToItem, removeImage, removeImageFromItem, addBookingImageUrl, removeBookingImage, handleBookingImageUpload, setAsCover, setFocus, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
           activeTransitModal, openTransitModal, closeTransitModal, toggleTransitSteps, addTransitStep, removeTransitStep,
           showPassengerManager, frequentPassengers, passengerForm, isEditingPassenger, showImportModal, importTargetFlightIndex, selectedImportIds,
