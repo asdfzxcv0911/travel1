@@ -436,6 +436,21 @@
           </div>
           <!-- 模組開關結束 -->
 
+          <!-- v60: 行程 JSON 備份與還原 (方案 A) -->
+          <div class="pt-4 border-t border-gray-100">
+            <label class="block mb-2 font-medium text-sm text-gray-700">💾 行程備份與還原 (JSON 檔案)</label>
+            <div class="flex gap-2.5">
+              <button type="button" @click="exportTripJson" class="flex-1 py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs md:text-sm font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5">
+                <span>📤</span><span>匯出備份檔 (.json)</span>
+              </button>
+              <label class="flex-1 py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs md:text-sm font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>📥</span><span>匯入備份檔 (.json)</span>
+                <input type="file" accept=".json,application/json" @change="importTripJson" class="hidden">
+              </label>
+            </div>
+            <p class="text-[11px] text-gray-400 font-bold mt-1.5">可將整份行程（含所有模組、圖片網址與花費）打包下載保存，或匯入備份檔還原。</p>
+          </div>
+
         </div>
         <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-xl">
           <button @click="closeSetup" class="px-4 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded-md text-sm transition-colors">取消</button>
@@ -460,7 +475,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v59</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v63</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -532,6 +547,9 @@
                 <h1 class="text-2xl md:text-4xl font-bold text-gray-900 mb-0.5 md:mb-1">{{ tripData.tripName }}</h1>
                 <div class="flex flex-wrap items-center gap-2 mt-0.5">
                   <p class="text-gray-500 font-medium text-xs md:text-base">{{ formatDateRange(tripData.startDate, tripData.endDate) }} (共 {{ tripData.itinerary.length }} 天)</p>
+                  <span v-if="tripCountdownBadge" :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border shadow-sm', tripCountdownBadge.class]">
+                    {{ tripCountdownBadge.text }}
+                  </span>
                   <button v-if="(!tripData.modules || tripData.modules.companions !== false) && (companionSummaryText || isEditor)"
                           @click="showCompanionModal = true"
                           class="inline-flex items-center gap-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors shadow-sm cursor-pointer">
@@ -1329,8 +1347,8 @@
 
           <!-- 編輯模式 -->
           <div v-else-if="isEditor" class="bg-white p-3 md:p-8 rounded-xl border border-gray-200 shadow-sm relative" :style="{ '--theme-color': tripData.itinerary[activeDayTab].themeColor || tripData.themeColor }">
-            <div class="flex justify-between items-center mb-2 md:mb-4 border-b border-gray-100 pb-2 md:pb-3">
-              <div class="flex items-center gap-3">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-2 md:mb-4 border-b border-gray-100 pb-2 md:pb-3">
+              <div class="flex flex-wrap items-center gap-2 md:gap-3">
                 <div>
                   <h3 class="text-lg md:text-xl font-bold text-gray-900">Day {{ activeDayTab + 1 }}</h3>
                   <p class="text-xs md:text-sm theme-text font-bold">{{ tripData.itinerary[activeDayTab].dateStr }}</p>
@@ -1338,6 +1356,14 @@
                 <div class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-full border border-gray-200 shadow-sm">
                   <span class="text-[10px] md:text-xs font-bold text-gray-500">🎨 專屬色</span>
                   <input type="color" v-model="tripData.itinerary[activeDayTab].themeColor" class="w-5 h-5 rounded cursor-pointer border-0 p-0 bg-transparent">
+                </div>
+                <div v-if="tripData.itinerary.length > 1" class="flex items-center bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1 rounded-full border border-blue-200 shadow-sm transition-colors">
+                  <select @change="swapDays(activeDayTab, $event)" class="text-[11px] md:text-xs font-bold text-blue-700 bg-transparent outline-none cursor-pointer">
+                    <option value="" disabled selected>⇄ 與他日整天對調...</option>
+                    <option v-for="(d, idx) in tripData.itinerary" :key="idx" :value="idx" :disabled="idx === activeDayTab">
+                      ⇄ 與 Day {{ idx + 1 }} ({{ d.dateStr.split(' ')[0] }}) 對調
+                    </option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1871,33 +1897,33 @@
                           <select v-if="isEditor && !trans.isLocked" v-model="trans.type" class="bg-white/20 border-0 rounded px-2 py-0.5 outline-none cursor-pointer focus:text-green-800 transition-colors text-white font-bold text-sm">
                             <option class="text-gray-800">🚗 租車</option><option class="text-gray-800">🚅 高鐵/火車</option><option class="text-gray-800">🚢 渡輪</option><option class="text-gray-800">🚌 客運</option><option class="text-gray-800">🎫 交通票券</option>
                           </select>
-                          <input v-if="isEditor && !trans.isLocked" v-model="trans.name" placeholder="標題 (例: 自駕租車明細)" class="bg-transparent font-black text-xl w-full outline-none placeholder-white/70 ml-2 text-center md:text-left">
+                          <input v-if="isEditor && !trans.isLocked" v-model="trans.name" placeholder="租車標題 (例: 自駕租車)" class="bg-transparent font-black text-xl w-full outline-none placeholder-white/70 placeholder:text-sm md:placeholder:text-base placeholder:font-bold ml-2 text-center md:text-left">
                           <h3 v-else class="text-xl font-black truncate text-center md:text-left">{{ trans.name || '自駕租車明細' }}</h3>
                       </div>
                   </div>
 
                   <div class="bg-white rounded-[28px] mx-1 md:mx-2 mb-2 p-5 md:p-6 space-y-6">
-                      <div class="flex justify-between items-start">
-                          <div class="flex-1">
+                      <div class="flex justify-between items-start gap-2">
+                          <div class="flex-1 min-w-0">
                               <p class="text-xs font-bold text-gray-500 mb-1">取車 (Pick-up)</p>
                               <div class="flex items-center gap-1.5 text-teal-600 font-black text-lg md:text-xl">
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depDate" placeholder="1/29(五)" class="w-20 bg-transparent outline-none border-b border-teal-200 placeholder-teal-300">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depDate" placeholder="日期" class="w-20 bg-transparent outline-none border-b border-teal-200 placeholder-teal-300 placeholder:text-xs md:placeholder:text-sm placeholder:font-bold">
                                   <span v-else>{{ trans.depDate || '--/--' }}</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depTime" placeholder="20:00" class="time-picker w-14 bg-transparent outline-none border-b border-teal-200 placeholder-teal-300 cursor-pointer">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depTime" placeholder="時間" class="time-picker w-14 bg-transparent outline-none border-b border-teal-200 placeholder-teal-300 placeholder:text-xs md:placeholder:text-sm placeholder:font-bold cursor-pointer">
                                   <span v-else>{{ trans.depTime || '--:--' }}</span>
                               </div>
-                              <input v-if="isEditor && !trans.isLocked" v-model="trans.depLoc" placeholder="取車營業所" class="w-full mt-1 text-sm font-bold text-gray-700 outline-none border-b border-gray-200">
+                              <input v-if="isEditor && !trans.isLocked" v-model="trans.depLoc" placeholder="取車地點 / 營業所" class="w-full mt-1 text-sm font-bold text-gray-700 outline-none border-b border-gray-200 placeholder:text-xs">
                               <p v-else class="text-sm font-bold text-gray-700 mt-1 truncate">{{ trans.depLoc || '未填寫地點' }}</p>
                           </div>
-                          <div class="flex-1 text-right">
+                          <div class="flex-1 min-w-0 text-right">
                               <p class="text-xs font-bold text-gray-500 mb-1">還車 (Drop-off)</p>
                               <div class="flex items-center justify-end gap-1.5 text-teal-600 font-black text-lg md:text-xl">
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.arrDate" placeholder="1/31(日)" class="w-20 text-right bg-transparent outline-none border-b border-teal-200 placeholder-teal-300">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.arrDate" placeholder="日期" class="w-20 text-right bg-transparent outline-none border-b border-teal-200 placeholder-teal-300 placeholder:text-xs md:placeholder:text-sm placeholder:font-bold">
                                   <span v-else>{{ trans.arrDate || '--/--' }}</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.arrTime" placeholder="20:00" class="time-picker w-14 text-right bg-transparent outline-none border-b border-teal-200 placeholder-teal-300 cursor-pointer">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.arrTime" placeholder="時間" class="time-picker w-14 text-right bg-transparent outline-none border-b border-teal-200 placeholder-teal-300 placeholder:text-xs md:placeholder:text-sm placeholder:font-bold cursor-pointer">
                                   <span v-else>{{ trans.arrTime || '--:--' }}</span>
                               </div>
-                              <input v-if="isEditor && !trans.isLocked" v-model="trans.arrLoc" placeholder="還車營業所" class="w-full mt-1 text-sm font-bold text-gray-700 text-right outline-none border-b border-gray-200">
+                              <input v-if="isEditor && !trans.isLocked" v-model="trans.arrLoc" placeholder="還車地點 / 營業所" class="w-full mt-1 text-sm font-bold text-gray-700 text-right outline-none border-b border-gray-200 placeholder:text-xs">
                               <p v-else class="text-sm font-bold text-gray-700 mt-1 truncate">{{ trans.arrLoc || '未填寫地點' }}</p>
                           </div>
                       </div>
@@ -1906,36 +1932,36 @@
 
                       <div class="bg-[#f8faff] rounded-2xl p-4 md:p-5 border border-[#e6f0ff] space-y-3">
                           <div class="grid grid-cols-2 gap-y-3 gap-x-2 text-[11px] md:text-sm">
-                              <div class="flex items-center gap-1">
+                              <div class="flex items-center gap-1 min-w-0">
                                   <span class="text-gray-500 shrink-0">確認編號:</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.bookingRef" class="font-black outline-none bg-transparent w-full uppercase" placeholder="如 K0415813">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.bookingRef" class="font-black outline-none bg-transparent w-full uppercase placeholder:text-[11px] placeholder:font-normal" placeholder="輸入編號">
                                   <span v-else class="font-black truncate">{{ trans.bookingRef || '---' }}</span>
                               </div>
-                              <div class="flex items-center gap-1 justify-end">
+                              <div class="flex items-center gap-1 justify-end min-w-0">
                                   <span class="text-gray-500 shrink-0">訂單編號:</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.orderNo" class="font-black outline-none bg-transparent w-full uppercase text-right" placeholder="如 UHQ632224">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.orderNo" class="font-black outline-none bg-transparent w-full uppercase text-right placeholder:text-[11px] placeholder:font-normal" placeholder="輸入單號">
                                   <span v-else class="font-black truncate">{{ trans.orderNo || '---' }}</span>
                               </div>
-                              <div class="flex items-center gap-1">
+                              <div class="flex items-center gap-1 min-w-0">
                                   <span class="text-gray-500 shrink-0">駕駛姓名:</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.driverName" class="font-black outline-none bg-transparent w-full uppercase" placeholder="MR LI">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.driverName" class="font-black outline-none bg-transparent w-full uppercase placeholder:text-[11px] placeholder:font-normal" placeholder="英文姓名">
                                   <span v-else class="font-black truncate">{{ trans.driverName || '---' }}</span>
                               </div>
-                              <div class="flex items-center gap-1 justify-end">
+                              <div class="flex items-center gap-1 justify-end min-w-0">
                                   <span class="text-gray-500 shrink-0">SIPP碼:</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.sippCode" class="font-black outline-none bg-transparent w-full uppercase text-right" placeholder="如 RVAR">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.sippCode" class="font-black outline-none bg-transparent w-full uppercase text-right placeholder:text-[11px] placeholder:font-normal" placeholder="選填">
                                   <span v-else class="font-black truncate">{{ trans.sippCode || '---' }}</span>
                               </div>
                           </div>
 
                           <div class="flex items-center gap-2 mt-1">
-                              <span class="text-gray-500 text-xs md:text-sm">租車公司:</span>
-                              <input v-if="isEditor && !trans.isLocked" v-model="trans.rentalCompany" class="bg-white border border-gray-200 px-2 py-0.5 rounded font-bold text-gray-700 text-xs md:text-sm outline-none w-24" placeholder="如 ORIX">
+                              <span class="text-gray-500 text-xs md:text-sm shrink-0">租車公司:</span>
+                              <input v-if="isEditor && !trans.isLocked" v-model="trans.rentalCompany" class="bg-white border border-gray-200 px-2 py-0.5 rounded font-bold text-gray-700 text-xs md:text-sm outline-none w-28 placeholder:text-[11px] placeholder:font-normal" placeholder="例: ORIX">
                               <span v-else class="bg-gray-100 px-2 py-0.5 rounded font-bold text-gray-700 text-xs border border-gray-200">{{ trans.rentalCompany || '未提供' }}</span>
                           </div>
 
                           <div>
-                              <input v-if="isEditor && !trans.isLocked" v-model="trans.carModel" class="w-full font-black text-gray-800 text-base md:text-lg outline-none bg-transparent mt-1" placeholder="Nissan Serena 或同級(商務車)">
+                              <input v-if="isEditor && !trans.isLocked" v-model="trans.carModel" class="w-full font-black text-gray-800 text-base md:text-lg outline-none bg-transparent mt-1 placeholder:text-xs md:placeholder:text-sm placeholder:font-bold" placeholder="預訂車型 (例: Nissan Serena 或同級)">
                               <div v-else class="font-black text-gray-800 text-base md:text-lg mt-1 truncate">{{ trans.carModel || '未指定車型' }}</div>
                           </div>
 
@@ -1965,14 +1991,14 @@
 
                       <div class="bg-[#e6fcf5] rounded-2xl p-4 md:p-5 border border-[#ccf3e8] text-sm text-gray-700 space-y-3">
                           <div class="flex justify-between items-center mb-1">
-                              <div class="flex items-center gap-1.5 font-black text-sm md:text-base text-gray-800 w-full">
-                                  <span class="text-red-500">📍</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.branchName" placeholder="取車營業所名稱 (如 ORIX 仙台站前店)" class="bg-transparent outline-none border-b border-green-200 w-full placeholder-green-300">
+                              <div class="flex items-center gap-1.5 font-black text-sm md:text-base text-gray-800 w-full min-w-0">
+                                  <span class="text-red-500 shrink-0">📍</span>
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.branchName" placeholder="營業所名稱 (例: 仙台站前店)" class="bg-transparent outline-none border-b border-green-200 w-full placeholder-green-500/70 placeholder:text-xs placeholder:font-bold">
                                   <span v-else class="truncate">{{ trans.branchName || '未提供營業所名稱' }}</span>
                               </div>
                               <a v-if="trans.depLink" :href="trans.depLink" target="_blank" class="bg-green-100 hover:bg-green-200 text-green-700 font-bold px-3 py-1 rounded-full text-xs transition-colors shadow-sm whitespace-nowrap ml-2">地圖導航</a>
-                              <div v-else-if="isEditor && !trans.isLocked" class="flex gap-1 items-center bg-white px-2 py-1 rounded text-xs border border-gray-200 ml-2">
-                                  🔗 <input v-model="trans.depLink" placeholder="地圖連結" class="w-16 outline-none">
+                              <div v-else-if="isEditor && !trans.isLocked" class="flex gap-1 items-center bg-white px-2 py-1 rounded text-xs border border-gray-200 ml-2 shrink-0">
+                                  🔗 <input v-model="trans.depLink" placeholder="導航網址" class="w-16 md:w-24 outline-none placeholder:text-[11px]">
                               </div>
                           </div>
 
@@ -1980,7 +2006,7 @@
                               <span class="opacity-70 mt-0.5">🏢</span>
                               <div class="flex-1">
                                   <span class="font-bold">地址：</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depAddress" placeholder="輸入詳細地址" class="w-full bg-transparent outline-none border-b border-green-200">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depAddress" placeholder="輸入詳細地址" class="w-full bg-transparent outline-none border-b border-green-200 placeholder:text-xs">
                                   <span v-else>{{ trans.depAddress || '---' }}</span>
                               </div>
                           </div>
@@ -1988,7 +2014,7 @@
                               <span class="opacity-70">📞</span>
                               <div class="flex-1">
                                   <span class="font-bold">電話：</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depPhone" placeholder="輸入電話" class="bg-transparent outline-none border-b border-green-200 w-32">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depPhone" placeholder="輸入電話" class="bg-transparent outline-none border-b border-green-200 w-36 placeholder:text-xs">
                                   <span v-else>{{ trans.depPhone || '---' }}</span>
                               </div>
                           </div>
@@ -1996,7 +2022,7 @@
                               <span class="opacity-70">⏰</span>
                               <div class="flex-1">
                                   <span class="font-bold">營業時間：</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depHours" placeholder="例 08:00-21:00" class="bg-transparent outline-none border-b border-green-200 w-32">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.depHours" placeholder="例: 08:00-20:00" class="bg-transparent outline-none border-b border-green-200 w-36 placeholder:text-xs">
                                   <span v-else>{{ trans.depHours || '---' }}</span>
                               </div>
                           </div>
@@ -2050,11 +2076,11 @@
                   <div class="px-6 py-5 text-white flex flex-col md:flex-row md:items-center justify-between gap-2">
                       <div class="flex items-center justify-center md:justify-start gap-2 w-full md:w-auto pr-16 md:pr-0">
                           <span class="text-2xl">{{ trans.type ? trans.type.split(' ')[0] : '🚅' }}</span>
-                          <select v-if="isEditor && !trans.isLocked" v-model="trans.type" class="bg-white/20 border-0 rounded px-2 py-0.5 outline-none cursor-pointer focus:text-teal-800 transition-colors text-white font-bold text-sm">
+                          <select v-if="isEditor && !trans.isLocked" v-model="trans.type" class="bg-white/20 border-0 rounded px-2 py-0.5 outline-none cursor-pointer focus:text-teal-800 transition-colors text-white font-bold text-sm shrink-0">
                             <option class="text-gray-800">🚗 租車</option><option class="text-gray-800">🚅 高鐵/火車</option><option class="text-gray-800">🚢 渡輪</option><option class="text-gray-800">🚌 客運</option><option class="text-gray-800">🎫 交通票券</option>
                           </select>
                           <span v-else class="bg-white/20 px-2 py-0.5 rounded text-white font-bold text-xs md:text-sm shrink-0">{{ trans.type || '🚅 高鐵/火車' }}</span>
-                          <input v-if="isEditor && !trans.isLocked" v-model="trans.name" placeholder="輸入班次或票券名稱 (例: 新幹線 / JR Pass)" class="bg-transparent font-black text-xl w-full outline-none placeholder-white/70 ml-2 text-center md:text-left">
+                          <input v-if="isEditor && !trans.isLocked" v-model="trans.name" placeholder="班次或票券名稱 (例: 新幹線)" class="bg-transparent font-black text-xl w-full outline-none placeholder-white/75 placeholder:text-xs sm:placeholder:text-sm md:placeholder:text-base placeholder:font-bold ml-1 md:ml-2 text-center md:text-left">
                           <h3 v-else class="text-xl font-black truncate text-center md:text-left ml-1">{{ trans.name || '未命名交通憑證' }}</h3>
                       </div>
                   </div>
@@ -2063,20 +2089,20 @@
                       <!-- 適用日期區間與訂位代號 -->
                       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-teal-50/60 p-3.5 rounded-2xl border border-teal-100">
                           <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                              <span class="text-xs font-bold text-teal-700">📅 搭乘/有效日期:</span>
-                              <input v-if="isEditor && !trans.isLocked" type="text" v-model="trans.dateRange" placeholder="點擊選擇日期或區間" class="range-date-picker bg-white border border-teal-200 rounded-lg px-2.5 py-1 text-xs md:text-sm font-black text-teal-800 cursor-pointer outline-none flex-1 md:w-52 text-center">
+                              <span class="text-xs font-bold text-teal-700 shrink-0">📅 搭乘/有效日期:</span>
+                              <input v-if="isEditor && !trans.isLocked" type="text" v-model="trans.dateRange" placeholder="點擊選擇日期區間" class="range-date-picker bg-white border border-teal-200 rounded-lg px-2.5 py-1 text-xs md:text-sm font-black text-teal-800 placeholder:text-[11px] placeholder:font-bold placeholder-teal-400 cursor-pointer outline-none flex-1 md:w-48 text-center">
                               <span v-else class="text-xs md:text-sm font-black text-teal-800">{{ trans.dateRange || trans.depDate || '尚未設定日期' }}</span>
                               <span v-if="calculateRelativeDays(trans.dateRange)" class="text-[10px] font-bold bg-teal-600 text-white rounded-full px-2 py-0.5">{{ calculateRelativeDays(trans.dateRange).text }}</span>
                           </div>
-                          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end text-xs">
+                          <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto justify-between md:justify-end text-xs">
                               <div class="flex items-center gap-1">
-                                  <span class="text-gray-500 font-bold shrink-0">憑證/訂位代號:</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.bookingRef" placeholder="輸入代號" class="bg-white border border-teal-200 rounded px-2 py-0.5 font-black text-teal-700 outline-none w-24 uppercase">
+                                  <span class="text-gray-500 font-bold shrink-0">訂位代號:</span>
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.bookingRef" placeholder="輸入代號" class="bg-white border border-teal-200 rounded px-2 py-0.5 font-black text-teal-700 outline-none w-24 uppercase placeholder:text-[11px] placeholder:font-normal">
                                   <span v-else class="font-black text-teal-700 uppercase">{{ trans.bookingRef || '---' }}</span>
                               </div>
                               <div class="flex items-center gap-1">
                                   <span class="text-gray-500 font-bold shrink-0">座位/車廂:</span>
-                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.orderNo" placeholder="如 3車12A" class="bg-white border border-teal-200 rounded px-2 py-0.5 font-black text-gray-700 outline-none w-24">
+                                  <input v-if="isEditor && !trans.isLocked" v-model="trans.orderNo" placeholder="例: 3車12A" class="bg-white border border-teal-200 rounded px-2 py-0.5 font-black text-gray-700 outline-none w-24 placeholder:text-[11px] placeholder:font-normal">
                                   <span v-else class="font-black text-gray-700">{{ trans.orderNo || '---' }}</span>
                               </div>
                           </div>
@@ -2084,30 +2110,30 @@
 
                       <!-- 出發與抵達資訊 -->
                       <div class="flex justify-between items-center gap-2 md:gap-6 px-1">
-                          <div class="flex-1">
+                          <div class="flex-1 min-w-0">
                               <p class="text-xs font-bold text-gray-400 mb-1">出發 (Departure)</p>
-                              <input v-if="isEditor && !trans.isLocked" type="text" v-model="trans.depTime" placeholder="時間 (09:00)" class="time-picker text-2xl md:text-3xl font-black text-teal-600 w-28 bg-transparent outline-none border-b border-teal-200 placeholder-teal-200 cursor-pointer">
+                              <input v-if="isEditor && !trans.isLocked" type="text" v-model="trans.depTime" placeholder="選擇時間" class="time-picker text-2xl md:text-3xl font-black text-teal-600 w-full max-w-[115px] bg-transparent outline-none border-b border-teal-200 placeholder-teal-300 placeholder:text-sm md:placeholder:text-base placeholder:font-bold cursor-pointer">
                               <div v-else class="text-2xl md:text-3xl font-black text-teal-600">{{ trans.depTime || '--:--' }}</div>
-                              <input v-if="isEditor && !trans.isLocked" v-model="trans.depLoc" placeholder="出發站點 / 碼頭" class="w-full mt-1.5 text-sm md:text-base font-bold text-gray-800 outline-none border-b border-gray-200">
+                              <input v-if="isEditor && !trans.isLocked" v-model="trans.depLoc" placeholder="出發站點" class="w-full mt-1.5 text-sm md:text-base font-bold text-gray-800 outline-none border-b border-gray-200 placeholder:text-xs placeholder:font-normal">
                               <p v-else class="text-sm md:text-base font-bold text-gray-800 mt-1.5 truncate">{{ trans.depLoc || '未填寫出發地' }}</p>
                               <div v-if="isEditor && !trans.isLocked" class="mt-1.5 flex items-center gap-1 text-xs text-gray-400">
-                                  <span>🔗</span><input v-model="trans.depLink" placeholder="出發地導航連結" class="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none text-xs text-gray-600">
+                                  <span class="shrink-0">🔗</span><input v-model="trans.depLink" placeholder="地圖導航連結" class="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none text-xs text-gray-600 placeholder:text-[11px]">
                               </div>
                               <a v-else-if="trans.depLink" :href="trans.depLink" target="_blank" class="inline-flex items-center gap-1 mt-1.5 text-xs font-bold text-teal-600 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-full transition-colors">📍 導航至出發地</a>
                           </div>
 
-                          <div class="flex flex-col items-center justify-center shrink-0 px-2">
-                              <span class="text-2xl md:text-3xl text-teal-400">➔</span>
+                          <div class="flex flex-col items-center justify-center shrink-0 px-1 md:px-2">
+                              <span class="text-xl md:text-3xl text-teal-400">➔</span>
                           </div>
 
-                          <div class="flex-1 text-right">
+                          <div class="flex-1 min-w-0 text-right">
                               <p class="text-xs font-bold text-gray-400 mb-1">抵達 (Arrival)</p>
-                              <input v-if="isEditor && !trans.isLocked" type="text" v-model="trans.arrTime" placeholder="時間 (11:30)" class="time-picker text-2xl md:text-3xl font-black text-teal-600 w-28 text-right bg-transparent outline-none border-b border-teal-200 placeholder-teal-200 cursor-pointer ml-auto block">
+                              <input v-if="isEditor && !trans.isLocked" type="text" v-model="trans.arrTime" placeholder="選擇時間" class="time-picker text-2xl md:text-3xl font-black text-teal-600 w-full max-w-[115px] text-right bg-transparent outline-none border-b border-teal-200 placeholder-teal-300 placeholder:text-sm md:placeholder:text-base placeholder:font-bold cursor-pointer ml-auto block">
                               <div v-else class="text-2xl md:text-3xl font-black text-teal-600">{{ trans.arrTime || '--:--' }}</div>
-                              <input v-if="isEditor && !trans.isLocked" v-model="trans.arrLoc" placeholder="抵達站點 / 碼頭" class="w-full mt-1.5 text-sm md:text-base font-bold text-gray-800 text-right outline-none border-b border-gray-200">
+                              <input v-if="isEditor && !trans.isLocked" v-model="trans.arrLoc" placeholder="抵達站點" class="w-full mt-1.5 text-sm md:text-base font-bold text-gray-800 text-right outline-none border-b border-gray-200 placeholder:text-xs placeholder:font-normal">
                               <p v-else class="text-sm md:text-base font-bold text-gray-800 mt-1.5 truncate">{{ trans.arrLoc || '未填寫抵達地' }}</p>
                               <div v-if="isEditor && !trans.isLocked" class="mt-1.5 flex items-center justify-end gap-1 text-xs text-gray-400">
-                                  <span>🔗</span><input v-model="trans.arrLink" placeholder="抵達地導航連結" class="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none text-xs text-gray-600 text-right">
+                                  <span class="shrink-0">🔗</span><input v-model="trans.arrLink" placeholder="地圖導航連結" class="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none text-xs text-gray-600 text-right placeholder:text-[11px]">
                               </div>
                               <a v-else-if="trans.arrLink" :href="trans.arrLink" target="_blank" class="inline-flex items-center gap-1 mt-1.5 text-xs font-bold text-teal-600 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-full transition-colors">📍 導航至抵達地</a>
                           </div>
@@ -2271,16 +2297,31 @@
 
         <!-- ==================== 【行李模組】 ==================== -->
         <div v-if="currentView === '行李'" class="space-y-4">
-          <div class="flex justify-between items-center mb-2 md:mb-4 px-2 md:px-0">
+          <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-2 md:mb-4 px-2 md:px-0">
             <div>
               <h2 class="text-xl md:text-2xl font-black text-gray-800">🎒 行李清單</h2>
+              <p class="text-[10px] md:text-xs text-gray-500 font-bold mt-0.5">出發前與回國打包時皆可逐項勾選檢查，避免遺漏隨身物品</p>
             </div>
-            <div v-if="isEditor" class="flex gap-2">
-              <button v-if="!tripData.luggage || tripData.luggage.length === 0" @click="initDefaultLuggage" class="bg-gray-800 hover:bg-gray-900 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow transition-all">
+            <div class="flex flex-wrap items-center gap-2">
+              <div v-if="luggageStats.totalCount > 0" class="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl flex items-center gap-3 shadow-sm">
+                <div class="flex flex-col min-w-[120px]">
+                  <div class="flex justify-between items-center text-[10px] font-bold text-amber-600 mb-1">
+                    <span>打包進度</span>
+                    <span>{{ luggageStats.checkedCount }} / {{ luggageStats.totalCount }} 件 ({{ luggageStats.percentage }}%)</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-amber-200/70 rounded-full overflow-hidden">
+                    <div class="h-full bg-amber-500 transition-all duration-300 rounded-full" :style="{ width: luggageStats.percentage + '%' }"></div>
+                  </div>
+                </div>
+                <button v-if="isEditor && luggageStats.checkedCount > 0" @click="resetLuggageChecks" class="bg-white hover:bg-amber-100 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm transition-colors shrink-0" title="清空所有勾選，回程打包可重新檢查">
+                  🔄 重置勾選
+                </button>
+              </div>
+              <button v-if="isEditor && (!tripData.luggage || tripData.luggage.length === 0)" @click="initDefaultLuggage" class="bg-gray-800 hover:bg-gray-900 text-white px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold shadow transition-all">
                 載入預設清單
               </button>
-              <button @click="addLuggageCategory" class="bg-amber-500 hover:bg-amber-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow transition-all flex items-center gap-1">
-                <span class="text-lg leading-none">+</span> <span class="hidden md:inline">新增分類</span>
+              <button v-if="isEditor" @click="addLuggageCategory" class="bg-amber-500 hover:bg-amber-600 text-white px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold shadow transition-all flex items-center gap-1">
+                <span class="text-lg leading-none">+</span> <span>新增分類</span>
               </button>
             </div>
           </div>
@@ -3741,6 +3782,89 @@
           document.body.removeChild(dummy); setTimeout(() => { if(saveStatus.value === '✅ 已複製純文字' || saveStatus.value === '❌ 複製失敗') saveStatus.value = ''; }, 3000);
         };
 
+        // --- v60: 匯出與匯入 JSON 備份檔 ---
+        const exportTripJson = () => {
+          try {
+            const exportObj = JSON.parse(JSON.stringify(tripData.value));
+            if (setupData.value.name) exportObj.tripName = setupData.value.name;
+            if (setupData.value.destination) exportObj.destination = setupData.value.destination;
+            if (setupData.value.startDate) exportObj.startDate = setupData.value.startDate;
+            if (setupData.value.endDate) exportObj.endDate = setupData.value.endDate;
+            if (setupData.value.themeColor) exportObj.themeColor = setupData.value.themeColor;
+            if (setupData.value.coverImage !== undefined) exportObj.coverImage = setupData.value.coverImage;
+            if (setupData.value.modules) exportObj.modules = JSON.parse(JSON.stringify(setupData.value.modules));
+
+            const dataStr = JSON.stringify(exportObj, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeName = (exportObj.tripName || '未命名行程').replace(/[\\/:*?"<>|]/g, '_');
+            const today = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `${safeName}_行程備份_${today}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            saveStatus.value = '✅ 已下載備份檔';
+            setTimeout(() => { if (saveStatus.value === '✅ 已下載備份檔') saveStatus.value = ''; }, 3000);
+          } catch (e) {
+            console.error(e);
+            customAlert('匯出備份檔失敗，請稍後再試。');
+          }
+        };
+
+        const importTripJson = (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const imported = JSON.parse(e.target.result);
+              if (!imported || typeof imported !== 'object' || !Array.isArray(imported.itinerary)) {
+                return customAlert('檔案格式不正確，請選擇本系統匯出的 .json 行程備份檔！');
+              }
+              customConfirm(`確定要匯入「${imported.tripName || '未命名行程'}」的備份檔嗎？\n這將會覆蓋目前行程的所有資料喔！`, () => {
+                delete imported.id;
+                imported.ownerId = currentUser.value ? currentUser.value.uid : (tripData.value.ownerId || '');
+                if (!Array.isArray(imported.coEditors)) imported.coEditors = [];
+                if (!Array.isArray(imported.flights)) imported.flights = [];
+                if (!Array.isArray(imported.transports)) imported.transports = [];
+                if (!Array.isArray(imported.accommodations)) imported.accommodations = [];
+                if (!Array.isArray(imported.luggage)) imported.luggage = [];
+                if (!Array.isArray(imported.shoppingList)) imported.shoppingList = [];
+                if (!Array.isArray(imported.expenses)) imported.expenses = [];
+                if (!Array.isArray(imported.memberList)) imported.memberList = [];
+                if (!imported.marquee) imported.marquee = createDefaultMarquee();
+                if (!imported.emergencyInfo) imported.emergencyInfo = createDefaultEmergencyInfo();
+                if (!imported.modules) imported.modules = { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true };
+
+                tripData.value = imported;
+                setupData.value = {
+                  name: imported.tripName || '未命名行程',
+                  destination: imported.destination || '',
+                  startDate: imported.startDate || '',
+                  endDate: imported.endDate || '',
+                  themeColor: imported.themeColor || '#e91e63',
+                  coEditorsStr: (imported.coEditors || []).join(', '),
+                  coverImage: imported.coverImage || '',
+                  modules: JSON.parse(JSON.stringify(imported.modules))
+                };
+                updateThemeColor(tripData.value.themeColor);
+                isSetup.value = false;
+                fetchWeatherData(tripData.value.destination);
+                bindDynamicPickers();
+                customAlert(`✅ 已成功匯入「${imported.tripName || '未命名行程'}」！`);
+              });
+            } catch (err) {
+              console.error(err);
+              customAlert('無法解析此 JSON 檔案，請確認檔案是否完整。');
+            }
+          };
+          reader.readAsText(file);
+          event.target.value = '';
+        };
+
         const deleteTripFromCloud = (id) => { customConfirm("確定要刪除這趟旅程嗎？刪除後無法恢復喔！", async () => { await deleteDoc(doc(db, "trips", id)); await fetchMyTrips(); }); };
 
         const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -3859,6 +3983,37 @@
         };
 
         const formatDateRange = (start, end) => start && end ? `${start.replace(/-/g, '/')} ~ ${end.replace(/-/g, '/')}` : '';
+
+        const tripCountdownBadge = computed(() => {
+          void nowTick.value;
+          if (!tripData.value.startDate || !tripData.value.endDate) return null;
+          const now = new Date();
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+          const sParts = tripData.value.startDate.split(/[-/]/).map(Number);
+          const eParts = tripData.value.endDate.split(/[-/]/).map(Number);
+          if (sParts.length < 3 || eParts.length < 3) return null;
+          const start = new Date(sParts[0], sParts[1] - 1, sParts[2]).getTime();
+          const end = new Date(eParts[0], eParts[1] - 1, eParts[2]).getTime();
+
+          if (today < start) {
+            const diffDays = Math.round((start - today) / 86400000);
+            return {
+              text: `⏳ 距離出發還有 ${diffDays} 天`,
+              class: 'bg-amber-50 text-amber-700 border-amber-200'
+            };
+          } else if (today >= start && today <= end) {
+            const currentDay = Math.round((today - start) / 86400000) + 1;
+            return {
+              text: `🎉 旅程進行中 (Day ${currentDay})`,
+              class: 'bg-emerald-50 text-emerald-700 border-emerald-200 animate-pulse'
+            };
+          } else {
+            return {
+              text: '✨ 旅程已圓滿結束',
+              class: 'bg-gray-100 text-gray-600 border-gray-200'
+            };
+          }
+        });
         
         const recalculateDay = (dayIdx) => {
           const day = tripData.value.itinerary[dayIdx]; if (day.items.length === 0) return;
@@ -3949,6 +4104,34 @@
         const removeLuggageCategory = (idx) => { tripData.value.luggage.splice(idx, 1); };
         const addLuggageItem = (catIdx) => { tripData.value.luggage[catIdx].items.push({ id: generateId(), name: '', isChecked: false }); };
         const removeLuggageItem = (catIdx, itemIdx) => { tripData.value.luggage[catIdx].items.splice(itemIdx, 1); };
+        const luggageStats = computed(() => {
+          const cats = tripData.value.luggage || [];
+          let totalCount = 0;
+          let checkedCount = 0;
+          cats.forEach(c => {
+            if (Array.isArray(c.items)) {
+              totalCount += c.items.length;
+              checkedCount += c.items.filter(i => i.isChecked).length;
+            }
+          });
+          const percentage = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+          return { totalCount, checkedCount, percentage };
+        });
+
+        const resetLuggageChecks = () => {
+          customConfirm("確定要將所有行李的勾選狀態全部清空重置嗎？\n（非常適合回程收行李時重新勾選檢查！）", () => {
+            if (Array.isArray(tripData.value.luggage)) {
+              tripData.value.luggage.forEach(cat => {
+                if (Array.isArray(cat.items)) {
+                  cat.items.forEach(item => { item.isChecked = false; });
+                }
+              });
+            }
+            saveStatus.value = '✅ 已重置行李勾選';
+            setTimeout(() => { if (saveStatus.value === '✅ 已重置行李勾選') saveStatus.value = ''; }, 2500);
+          });
+        };
+
         const initDefaultLuggage = () => {
           tripData.value.luggage = [
             { name: '重要文件與金錢', items: [{id: generateId(), name: '護照 (確認效期)', isChecked: false}, {id: generateId(), name: '外幣現金', isChecked: false}, {id: generateId(), name: '信用卡 (海外回饋高)', isChecked: false}] },
@@ -4228,6 +4411,35 @@
           saveStatus.value = `✅ 已將行程挪至 Day ${toDayIdx + 1}`; setTimeout(() => { if(saveStatus.value.includes('已將行程挪至')) saveStatus.value = ''; }, 3000);
         };
 
+        const swapDays = (fromDayIdx, event) => {
+          const toDayIdx = parseInt(event.target.value);
+          event.target.value = "";
+          if (isNaN(toDayIdx) || fromDayIdx === toDayIdx) return;
+          const dayA = tripData.value.itinerary[fromDayIdx];
+          const dayB = tripData.value.itinerary[toDayIdx];
+          if (!dayA || !dayB) return;
+
+          customConfirm(`確定要將「Day ${fromDayIdx + 1}」與「Day ${toDayIdx + 1}」整天的行程對調嗎？\n\n（兩天的日期會維持原本順序，僅將景點、交通動線與當日雨天備案整組互換）`, () => {
+            const tempItems = dayA.items;
+            const tempTransit = dayA.transit;
+            const tempBackups = dayA.backups || [];
+
+            dayA.items = dayB.items;
+            dayA.transit = dayB.transit;
+            dayA.backups = dayB.backups || [];
+
+            dayB.items = tempItems;
+            dayB.transit = tempTransit;
+            dayB.backups = tempBackups;
+
+            recalculateDay(fromDayIdx);
+            recalculateDay(toDayIdx);
+
+            saveStatus.value = `✅ 已將 Day ${fromDayIdx + 1} 與 Day ${toDayIdx + 1} 整天對調`;
+            setTimeout(() => { if (saveStatus.value.includes('整天對調')) saveStatus.value = ''; }, 3000);
+          });
+        };
+
         // --- 常用旅客名單邏輯 ---
         const loadFrequentPassengers = async () => {
           if (!currentUser.value || currentUser.value.uid.startsWith('guest_')) return;
@@ -4283,7 +4495,7 @@
         return {
           appState, currentUser, myTrips, createNewTrip, duplicateTrip, openTrip, backToDashboard, loginWithGoogle, guestLogin, logout, deleteTripFromCloud, copyShareLink,
           isOwner, hasEditPermission, isEditor, isSetup, setupData, generateTrip, openSetup, closeSetup,
-          saveStatus, shareStatus, tabs, visibleTabs, currentView, activeDayTab, tripData, formatDateRange, activeMemo, activeImage, shareDialog, copyToClipboard, exportToText, switchTab,
+          saveStatus, shareStatus, tabs, visibleTabs, currentView, activeDayTab, tripData, formatDateRange, tripCountdownBadge, activeMemo, activeImage, shareDialog, copyToClipboard, exportToText, exportTripJson, importTripJson, switchTab,
           currentWeather, forecast, weatherLoading, showWeatherModal,
           showCompanionModal, companionSummaryText, addMember, removeMember,
           showMarqueeModal, activeMarqueeText, isMarqueeItemActive, addMarqueeItem, removeMarqueeItem, applyMarqueePreset, setMarqueeDateToday, setMarqueeDateTrip,
@@ -4294,13 +4506,13 @@
           calculateRelativeDays, splitDateRange, calculateNights, getHotelsForDay, getTransportsForDay,
           addFlight, removeFlight, moveFlightUp, moveFlightDown, addPassenger, removePassenger, searchFlightStatus,
           addTransport, removeTransport, moveTransportUp, moveTransportDown, addAccommodation, removeAccommodation, moveAccommodationUp, moveAccommodationDown, getHotelGradient,
-          addLuggageCategory, removeLuggageCategory, addLuggageItem, removeLuggageItem, initDefaultLuggage,
+          addLuggageCategory, removeLuggageCategory, addLuggageItem, removeLuggageItem, luggageStats, resetLuggageChecks, initDefaultLuggage,
           shoppingFilter, addShoppingItem, removeShoppingItem, updateShoppingExchangeRate, calculateShoppingItemTWD, shoppingOwners, filteredShoppingList, shoppingStats,
           expenseCategories, currencyList, availableRates, updateExchangeRate,
           getCategoryIcon, getCategoryColor, getTypeLabel, getTypeColor, getMultiplier, calculateExpenseItemTotalForeign, calculateExpenseItemTotalTWD, totalExpense, expenseTotalsByCategory, pieChartStyle, addExpense, removeExpense, moveExpenseUp, moveExpenseDown, addExpenseDetail, removeExpenseDetail, formatCurrency,
           addItem, deleteItem, recalculateDay, userChangedStartTime, userChangedEndTime, openField,
           addDayBackup, removeDayBackup, promoteBackupToItinerary,
-          handleImageUpload, handleCoverUpload, addImageUrl, addImageUrlToItem, removeImage, removeImageFromItem, addBookingImageUrl, removeBookingImage, handleBookingImageUpload, setAsCover, setFocus, moveToDay, moveItemUp, moveItemDown, insertItemAfter,
+          handleImageUpload, handleCoverUpload, addImageUrl, addImageUrlToItem, removeImage, removeImageFromItem, addBookingImageUrl, removeBookingImage, handleBookingImageUpload, setAsCover, setFocus, moveToDay, swapDays, moveItemUp, moveItemDown, insertItemAfter,
           activeTransitModal, openTransitModal, closeTransitModal, toggleTransitSteps, addTransitStep, removeTransitStep,
           showPassengerManager, frequentPassengers, passengerForm, isEditingPassenger, showImportModal, importTargetFlightIndex, selectedImportIds,
           openPassengerManager, editPassenger, savePassengerForm, deletePassenger, openImportModal, confirmImportPassengers, toggleImportSelection,
