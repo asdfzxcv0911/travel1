@@ -1052,17 +1052,17 @@
            <!-- Body: Booking -->
            <div v-if="activeAccModalType === 'booking'" class="p-5 overflow-y-auto hide-scrollbar flex-1 bg-gray-50 flex flex-col gap-4">
               <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
-                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                       <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">訂房憑證圖片 Booking Vouchers</label>
-                       <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full text-[9px] font-bold">{{ tripData.accommodations[activeAccHotelIdx].bookingImages ? tripData.accommodations[activeAccHotelIdx].bookingImages.length : 0 }}</span>
+                 <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                       <label class="block text-xs font-bold text-gray-500 tracking-wide whitespace-nowrap">訂房憑證圖片 <span class="hidden sm:inline text-[10px] text-gray-400 uppercase tracking-widest">Booking Vouchers</span></label>
+                       <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full text-[10px] font-bold shrink-0">{{ tripData.accommodations[activeAccHotelIdx].bookingImages ? tripData.accommodations[activeAccHotelIdx].bookingImages.length : 0 }}</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                       <a v-if="tripData.accommodations[activeAccHotelIdx].bookingLink" :href="tripData.accommodations[activeAccHotelIdx].bookingLink" target="_blank" class="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 hover:bg-emerald-100 transition-colors">
-                          🔗 開啟憑證連結
+                    <div class="flex items-center gap-1.5 shrink-0">
+                       <a v-if="tripData.accommodations[activeAccHotelIdx].bookingLink" :href="tripData.accommodations[activeAccHotelIdx].bookingLink" target="_blank" class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 hover:bg-emerald-100 transition-colors whitespace-nowrap shrink-0 shadow-sm">
+                          <span>🔗</span><span>開啟憑證連結</span>
                        </a>
-                       <button v-if="isEditor" @click="tripData.accommodations[activeAccHotelIdx].editBookingLink = !tripData.accommodations[activeAccHotelIdx].editBookingLink" class="text-[10px] text-gray-400 hover:text-emerald-500 font-bold flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
-                          🔗 連結
+                       <button v-if="isEditor" @click="tripData.accommodations[activeAccHotelIdx].editBookingLink = !tripData.accommodations[activeAccHotelIdx].editBookingLink" class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-emerald-600 font-bold bg-gray-50 hover:bg-emerald-50 px-2.5 py-1 rounded-full border border-gray-200 transition-colors whitespace-nowrap shrink-0">
+                          <span>🔗</span><span>連結</span>
                        </button>
                     </div>
                  </div>
