@@ -475,7 +475,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v64</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v65</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -1258,7 +1258,11 @@
                         </h4>
 
                         <!-- 附件小標籤列 (Pills) -->
-                        <div v-if="item.link || item.memo || item.operatingHours || (item.tickets && item.tickets.length > 0)" class="mt-2.5 flex flex-wrap gap-1.5 md:gap-2">
+                        <div v-if="item.link || item.memo || item.operatingHours || item.bookedInfo || (item.tickets && item.tickets.length > 0)" class="mt-2.5 flex flex-wrap gap-1.5 md:gap-2">
+                           <!-- 已預定 -->
+                           <div v-if="item.bookedInfo" class="text-[11px] md:text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded-md flex items-center gap-1 w-max shadow-sm border border-emerald-200">
+                             ✅ 已預定: {{ item.bookedInfo }}
+                           </div>
                            <!-- 備忘錄 -->
                            <div v-if="item.memo" @click="activeMemo = item.memo" class="cursor-pointer text-[11px] md:text-xs text-gray-500 font-bold bg-gray-100 px-2 py-1 rounded-md hover:bg-gray-200 transition-colors flex items-center gap-1 w-max shadow-sm border border-gray-200" title="點擊查看完整備忘錄">
                              📝 筆記
@@ -1435,6 +1439,7 @@
                           <button @click="openField(item, 'link')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🔗</span> 加入連結</button>
                           <button @click="openField(item, 'map')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">📍</span> 加入地圖</button>
                           <button @click="openField(item, 'operatingHours')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">⏰</span> 加入營業時間</button>
+                          <button @click="openField(item, 'bookedInfo')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">✅</span> 加入已預定</button>
                           <button @click="openField(item, 'tickets')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🎟️</span> 加入票價</button>
                           <button @click="openField(item, 'memo')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">📝</span> 加入備忘錄</button>
                           <button @click="openField(item, 'images')" class="text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 text-gray-700 relative z-50"><span class="w-4 text-center">🖼️</span> 加入圖片</button>
@@ -1491,6 +1496,19 @@
                           <div v-else class="w-full flex items-start gap-1 mt-1">
                             <input type="text" v-model="item.operatingHours" placeholder="輸入營業時間 (例: 09:00 - 18:00)" class="flex-1 text-[11px] md:text-xs bg-white border border-gray-300 rounded px-1.5 py-1 focus-theme outline-none">
                             <div class="flex flex-col gap-1"><button @click="item.editOperatingHours = false" class="theme-bg text-white px-2 py-1 rounded text-[11px] md:text-xs font-bold shadow-sm">確定</button><button v-if="!item.operatingHours" @click="item.operatingHours = false" class="text-gray-400 px-1 py-1 text-xs hover:text-gray-600">✕</button></div>
+                          </div>
+                        </template>
+
+                        <template v-if="item.bookedInfo !== undefined && item.bookedInfo !== false">
+                          <div v-if="!item.editBookedInfo && item.bookedInfo" class="flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 text-[11px] md:text-xs shadow-sm w-max mt-1">
+                            <span class="text-emerald-700 font-bold truncate max-w-[180px] md:max-w-[240px]">✅ 已預定: {{ item.bookedInfo }}</span>
+                            <div class="border-l border-emerald-200 pl-1 ml-1 flex gap-1"><button @click="item.editBookedInfo = true" class="text-emerald-500 hover:text-emerald-700">✏️</button><button @click="item.bookedInfo = false" class="text-emerald-500 hover:text-red-500">✕</button></div>
+                          </div>
+                          <div v-else class="w-full flex items-center gap-1 mt-1">
+                            <span class="text-xs font-bold text-emerald-700 shrink-0">✅ 已預定:</span>
+                            <input type="text" v-model="item.bookedInfo" placeholder="輸入預訂內容 (例: 18:00 4位 / Klook門票)" class="flex-1 text-[11px] md:text-xs bg-white border border-gray-300 rounded px-1.5 py-1 focus-theme outline-none">
+                            <button @click="item.editBookedInfo = false" class="theme-bg text-white px-2 py-1 rounded text-[11px] md:text-xs font-bold shadow-sm shrink-0">確定</button>
+                            <button v-if="!item.bookedInfo" @click="item.bookedInfo = false" class="text-gray-400 px-1 py-1 text-xs hover:text-gray-600 shrink-0">✕</button>
                           </div>
                         </template>
 
