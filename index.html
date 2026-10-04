@@ -318,7 +318,7 @@
       
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="trip in myTrips" :key="trip.id" @click="openTrip(trip.id)" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md transition-shadow group relative">
+          <div v-for="trip in myTrips" :key="trip.id" @click="openTrip(trip.id)" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md transition-all group relative" :class="getTripCardStatus(trip).isCompleted ? 'opacity-75 hover:opacity-100 bg-gray-50/60' : ''">
             <div class="h-24 w-full relative bg-cover bg-center" :style="trip.coverImage ? { backgroundImage: 'url(' + trip.coverImage + ')' } : { backgroundColor: trip.themeColor || '#e91e63' }">
               <div v-if="trip.coverImage" class="absolute inset-0 bg-black/40 transition-opacity group-hover:bg-black/50"></div>
             </div>
@@ -329,8 +329,9 @@
               <button v-if="trip.ownerId === currentUser?.uid" @click.stop="deleteTripFromCloud(trip.id)" class="bg-black/40 hover:bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm shadow-sm transition-colors" title="刪除行程">🗑</button>
             </div>
             <div class="p-5">
-              <div class="flex items-center gap-2 mb-2">
+              <div class="flex flex-wrap items-center gap-1.5 mb-2">
                 <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">📍 {{ trip.destination }}</span>
+                <span v-if="getTripCardStatus(trip).text" :class="['text-xs font-bold px-2 py-0.5 rounded border', getTripCardStatus(trip).class]">{{ getTripCardStatus(trip).text }}</span>
                 <span v-if="trip.ownerId !== currentUser?.uid" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">🤝 共同編輯</span>
               </div>
               <h3 class="text-xl font-bold text-gray-900 mb-1 truncate">{{ trip.tripName }}</h3>
@@ -475,7 +476,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v65</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v66</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -923,17 +924,31 @@
       </div>
 
       <!-- 圖片全螢幕放大鏡 Modal (新增左右滑動與指示器，提升至最高圖層 z-[800]) -->
-      <div v-if="activeImage" class="fixed inset-0 bg-black/90 z-[800] flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm" @click.self="activeImage = null" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
-        <button @click="activeImage = null" class="absolute top-4 right-4 md:top-8 md:right-8 text-white hover:text-gray-300 text-4xl font-bold z-[810] transition-colors">&times;</button>
+      <div v-if="activeImage" class="fixed inset-0 bg-black/90 z-[800] flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm overflow-hidden" @click.self="closeActiveImage" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd" @wheel.prevent="handleImageWheel">
+        <button @click="closeActiveImage" class="absolute top-4 right-4 md:top-8 md:right-8 text-white hover:text-gray-300 text-4xl font-bold z-[810] transition-colors">&times;</button>
         
-        <button v-if="activeImage.list && activeImage.list.length > 1 && activeImage.index > 0" @click.stop="prevImage" class="absolute left-2 md:left-8 text-white/30 hover:text-white text-5xl font-bold z-[810] transition-colors p-4 select-none">‹</button>
+        <button v-if="activeImage.list && activeImage.list.length > 1 && activeImage.index > 0 && imgZoom <= 1" @click.stop="prevImage" class="absolute left-2 md:left-8 text-white/30 hover:text-white text-5xl font-bold z-[810] transition-colors p-4 select-none">‹</button>
         
-        <img :src="activeImage.list ? activeImage.list[activeImage.index] : activeImage" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl select-none">
+        <img :src="activeImage.list ? activeImage.list[activeImage.index] : activeImage"
+             @dblclick.stop="toggleDoubleClickZoom"
+             @mousedown.prevent="handleMouseDown"
+             @mousemove="handleMouseMove"
+             @mouseup="handleMouseUp"
+             @mouseleave="handleMouseUp"
+             :style="{ transform: `translate(${imgPanX}px, ${imgPanY}px) scale(${imgZoom})`, transition: isDraggingImg ? 'none' : 'transform 0.2s ease-out', cursor: imgZoom > 1 ? 'grab' : 'zoom-in', touchAction: 'none' }"
+             class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl select-none">
         
-        <button v-if="activeImage.list && activeImage.list.length > 1 && activeImage.index < activeImage.list.length - 1" @click.stop="nextImage" class="absolute right-2 md:right-8 text-white/30 hover:text-white text-5xl font-bold z-[810] transition-colors p-4 select-none">›</button>
+        <button v-if="activeImage.list && activeImage.list.length > 1 && activeImage.index < activeImage.list.length - 1 && imgZoom <= 1" @click.stop="nextImage" class="absolute right-2 md:right-8 text-white/30 hover:text-white text-5xl font-bold z-[810] transition-colors p-4 select-none">›</button>
 
-        <div v-if="activeImage.list && activeImage.list.length > 1" class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md text-white text-sm font-bold px-4 py-1.5 rounded-full z-[810]">
-          {{ activeImage.index + 1 }} / {{ activeImage.list.length }}
+        <!-- 底部縮放與頁碼控制列 -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/60 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full z-[810] border border-white/20 shadow-lg select-none">
+          <button @click.stop="zoomOutImg" class="w-7 h-7 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center font-black text-base transition-colors">－</button>
+          <button @click.stop="resetImgZoom" class="text-xs font-bold px-2 min-w-[48px] text-center hover:text-amber-300 transition-colors" title="點擊恢復 100%">{{ Math.round(imgZoom * 100) }}%</button>
+          <button @click.stop="zoomInImg" class="w-7 h-7 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center font-black text-base transition-colors">＋</button>
+          <template v-if="activeImage.list && activeImage.list.length > 1">
+            <span class="text-white/30 mx-1">|</span>
+            <span class="text-xs font-bold pr-1">{{ activeImage.index + 1 }} / {{ activeImage.list.length }}</span>
+          </template>
         </div>
       </div>
 
@@ -2796,23 +2811,115 @@
         };
         const closeAccModal = () => { activeAccModalType.value = ''; activeAccHotelIdx.value = null; };
 
-        // 處理圖片左右滑動邏輯
+        // 處理圖片左右滑動與雙指/按鈕放大縮小邏輯
         const touchStartX = ref(0);
         const touchEndX = ref(0);
-        const handleTouchStart = (e) => { touchStartX.value = e.changedTouches[0].screenX; };
-        const handleTouchEnd = (e) => {
-            touchEndX.value = e.changedTouches[0].screenX;
-            if (!activeImage.value || !activeImage.value.list) return;
-            const threshold = 50; // 判定滑動的最小距離
-            if (touchStartX.value - touchEndX.value > threshold && activeImage.value.index < activeImage.value.list.length - 1) {
-                activeImage.value.index++; // 往左滑看下一張
-            }
-            if (touchEndX.value - touchStartX.value > threshold && activeImage.value.index > 0) {
-                activeImage.value.index--; // 往右滑看上一張
+        const imgZoom = ref(1);
+        const imgPanX = ref(0);
+        const imgPanY = ref(0);
+        const isDraggingImg = ref(false);
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let initialPinchDist = 0;
+        let initialPinchZoom = 1;
+        let lastTapTime = 0;
+
+        const resetImgZoom = () => {
+            imgZoom.value = 1;
+            imgPanX.value = 0;
+            imgPanY.value = 0;
+            isDraggingImg.value = false;
+        };
+        const closeActiveImage = () => {
+            resetImgZoom();
+            activeImage.value = null;
+        };
+        const zoomInImg = () => {
+            imgZoom.value = Math.min(4, +(imgZoom.value + 0.5).toFixed(2));
+        };
+        const zoomOutImg = () => {
+            imgZoom.value = Math.max(1, +(imgZoom.value - 0.5).toFixed(2));
+            if (imgZoom.value <= 1) { imgPanX.value = 0; imgPanY.value = 0; }
+        };
+        const toggleDoubleClickZoom = () => {
+            if (imgZoom.value > 1) { resetImgZoom(); }
+            else { imgZoom.value = 2.5; imgPanX.value = 0; imgPanY.value = 0; }
+        };
+        const handleImageWheel = (e) => {
+            if (e.deltaY < 0) zoomInImg();
+            else zoomOutImg();
+        };
+        const handleMouseDown = (e) => {
+            if (imgZoom.value <= 1) return;
+            isDraggingImg.value = true;
+            dragStartX = e.clientX - imgPanX.value;
+            dragStartY = e.clientY - imgPanY.value;
+        };
+        const handleMouseMove = (e) => {
+            if (!isDraggingImg.value || imgZoom.value <= 1) return;
+            imgPanX.value = e.clientX - dragStartX;
+            imgPanY.value = e.clientY - dragStartY;
+        };
+        const handleMouseUp = () => { isDraggingImg.value = false; };
+
+        const handleTouchStart = (e) => {
+            if (e.touches.length === 2) {
+                isDraggingImg.value = true;
+                initialPinchDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialPinchZoom = imgZoom.value;
+            } else if (e.touches.length === 1) {
+                const now = Date.now();
+                if (now - lastTapTime < 280) {
+                    toggleDoubleClickZoom();
+                    lastTapTime = 0;
+                    return;
+                }
+                lastTapTime = now;
+                touchStartX.value = e.touches[0].screenX;
+                if (imgZoom.value > 1) {
+                    isDraggingImg.value = true;
+                    dragStartX = e.touches[0].clientX - imgPanX.value;
+                    dragStartY = e.touches[0].clientY - imgPanY.value;
+                }
             }
         };
-        const prevImage = () => { if (activeImage.value && activeImage.value.index > 0) activeImage.value.index--; };
-        const nextImage = () => { if (activeImage.value && activeImage.value.index < activeImage.value.list.length - 1) activeImage.value.index++; };
+        const handleTouchMove = (e) => {
+            if (e.touches.length === 2 && initialPinchDist > 0) {
+                e.preventDefault();
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const newZoom = Math.min(4, Math.max(1, initialPinchZoom * (dist / initialPinchDist)));
+                imgZoom.value = +newZoom.toFixed(2);
+                if (imgZoom.value <= 1) { imgPanX.value = 0; imgPanY.value = 0; }
+            } else if (e.touches.length === 1 && imgZoom.value > 1 && isDraggingImg.value) {
+                e.preventDefault();
+                imgPanX.value = e.touches[0].clientX - dragStartX;
+                imgPanY.value = e.touches[0].clientY - dragStartY;
+            }
+        };
+        const handleTouchEnd = (e) => {
+            isDraggingImg.value = false;
+            initialPinchDist = 0;
+            if (imgZoom.value > 1) return;
+            touchEndX.value = e.changedTouches[0].screenX;
+            if (!activeImage.value || !activeImage.value.list) return;
+            const threshold = 50;
+            if (touchStartX.value - touchEndX.value > threshold && activeImage.value.index < activeImage.value.list.length - 1) {
+                resetImgZoom();
+                activeImage.value.index++;
+            }
+            if (touchEndX.value - touchStartX.value > threshold && activeImage.value.index > 0) {
+                resetImgZoom();
+                activeImage.value.index--;
+            }
+        };
+        const prevImage = () => { if (activeImage.value && activeImage.value.index > 0) { resetImgZoom(); activeImage.value.index--; } };
+        const nextImage = () => { if (activeImage.value && activeImage.value.index < activeImage.value.list.length - 1) { resetImgZoom(); activeImage.value.index++; } };
 
         const currentWeather = ref(null);
         const forecast = ref([]);
@@ -3486,6 +3593,29 @@
           } else { signOut(auth).then(() => { appState.value = 'LOGIN'; }); }
         };
 
+        const parseDateTimestamp = (dateStr) => {
+          if (!dateStr) return null;
+          const parts = String(dateStr).split(/[-/]/).map(Number);
+          if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) return null;
+          return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+        };
+
+        const getTripCardStatus = (trip) => {
+          const now = new Date();
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+          const start = parseDateTimestamp(trip?.startDate);
+          const end = parseDateTimestamp(trip?.endDate) ?? start;
+          if (start === null) return { isCompleted: false, text: '', class: '' };
+          if (end < today) {
+            return { isCompleted: true, text: '✨ 已完成', class: 'bg-gray-100 text-gray-500 border-gray-200' };
+          }
+          if (today >= start && today <= end) {
+            return { isCompleted: false, text: '🎉 進行中', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+          }
+          const diffDays = Math.round((start - today) / 86400000);
+          return { isCompleted: false, text: `⏳ 倒數 ${diffDays} 天`, class: 'bg-amber-50 text-amber-700 border-amber-200' };
+        };
+
         const fetchMyTrips = async () => {
           if (!currentUser.value) return;
           try {
@@ -3497,6 +3627,33 @@
             const qCo = query(collection(db, "trips"), where("coEditors", "array-contains", myEmail));
             const snapCo = await getDocs(qCo);
             snapCo.docs.forEach(doc => { if (!trips.find(t => t.id === doc.id)) { trips.push({ id: doc.id, ...doc.data() }); } });
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            trips.sort((a, b) => {
+              const startA = parseDateTimestamp(a.startDate);
+              const endA = parseDateTimestamp(a.endDate) ?? startA;
+              const startB = parseDateTimestamp(b.startDate);
+              const endB = parseDateTimestamp(b.endDate) ?? startB;
+
+              const isCompletedA = endA !== null && endA < today;
+              const isCompletedB = endB !== null && endB < today;
+
+              // 1. 進行中與即將到來的行程排在最前面，已完成的排在最下面
+              if (isCompletedA !== isCompletedB) {
+                return isCompletedA ? 1 : -1;
+              }
+              // 2. 若都是未完成行程：按照出發日期由近到遠（升冪）排列
+              if (!isCompletedA) {
+                if (startA === null && startB === null) return 0;
+                if (startA === null) return 1;
+                if (startB === null) return -1;
+                return startA - startB;
+              }
+              // 3. 若都是已完成行程：按照結束日期由最近完成到最久以前（降冪）排列
+              return (endB || 0) - (endA || 0);
+            });
+
             myTrips.value = trips;
           } catch(e) { console.error("Fetch Error:", e); }
         };
@@ -4511,14 +4668,15 @@
         };
 
         return {
-          appState, currentUser, myTrips, createNewTrip, duplicateTrip, openTrip, backToDashboard, loginWithGoogle, guestLogin, logout, deleteTripFromCloud, copyShareLink,
+          appState, currentUser, myTrips, getTripCardStatus, createNewTrip, duplicateTrip, openTrip, backToDashboard, loginWithGoogle, guestLogin, logout, deleteTripFromCloud, copyShareLink,
           isOwner, hasEditPermission, isEditor, isSetup, setupData, generateTrip, openSetup, closeSetup,
           saveStatus, shareStatus, tabs, visibleTabs, currentView, activeDayTab, tripData, formatDateRange, tripCountdownBadge, activeMemo, activeImage, shareDialog, copyToClipboard, exportToText, exportTripJson, importTripJson, switchTab,
           currentWeather, forecast, weatherLoading, showWeatherModal,
           showCompanionModal, companionSummaryText, addMember, removeMember,
           showMarqueeModal, activeMarqueeText, isMarqueeItemActive, addMarqueeItem, removeMarqueeItem, applyMarqueePreset, setMarqueeDateToday, setMarqueeDateTrip,
           showEmergencyModal, emergencyTab, addEmergencyQrUrl, handleEmergencyQrUpload, autoFillEntryCardFromTrip, autoFillEmergencyByDestination,
-          handleTouchStart, handleTouchEnd, prevImage, nextImage,
+          handleTouchStart, handleTouchMove, handleTouchEnd, prevImage, nextImage,
+          imgZoom, imgPanX, imgPanY, isDraggingImg, resetImgZoom, closeActiveImage, zoomInImg, zoomOutImg, toggleDoubleClickZoom, handleImageWheel, handleMouseDown, handleMouseMove, handleMouseUp,
           alertDialog, confirmDialog, customAlert, customConfirm,
           stayOptions, formatStayTime, toggleMenu, getTransitIcon, formatDuration,
           calculateRelativeDays, splitDateRange, calculateNights, getHotelsForDay, getTransportsForDay,
