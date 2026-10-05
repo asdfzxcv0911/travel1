@@ -476,7 +476,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v66</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v67</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -1437,10 +1437,17 @@
                     <!-- 第二層 (手機) / 右側 (電腦)：行程名稱與齒輪按鈕 -->
                     <div class="flex items-center gap-1 md:gap-2 flex-1 w-full min-w-0 mt-1 md:mt-0">
                       <input type="text" v-model="item.activity" placeholder="行程名稱" :class="item.isImportant ? 'text-red-500' : 'text-gray-800'" class="bg-white border border-gray-200 rounded compact-input font-bold text-sm md:text-base flex-1 min-w-0 focus-theme outline-none tracking-wide w-full">
+                      <div class="flex items-center gap-1 flex-shrink-0">
+                        <button v-if="itemIndex > 0" @click="moveItemUp(activeDayTab, itemIndex)" class="text-gray-500 hover:text-blue-600 p-1 md:px-1.5 bg-white border border-gray-300 rounded text-xs shadow-sm transition-colors" title="往上移動">⬆️</button>
+                        <button v-if="itemIndex < tripData.itinerary[activeDayTab].items.length - 1" @click="moveItemDown(activeDayTab, itemIndex)" class="text-gray-500 hover:text-blue-600 p-1 md:px-1.5 bg-white border border-gray-300 rounded text-xs shadow-sm transition-colors" title="往下移動">⬇️</button>
+                      </div>
                       <div class="relative flex-shrink-0">
                         <button @click="toggleMenu(activeDayTab, itemIndex)" class="text-gray-500 hover:text-gray-800 p-1 md:px-2 bg-white border border-gray-300 rounded md:text-base text-xs shadow-sm focus-theme transition-colors">⚙️</button>
                         <div v-if="item.showMenu" class="fixed inset-0 z-30" @click="item.showMenu = false"></div>
                         <div v-if="item.showMenu" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 w-44 py-1 text-sm flex flex-col">
+                          <button v-if="itemIndex > 0" @click="moveItemUp(activeDayTab, itemIndex)" class="text-left px-3 py-1.5 hover:bg-gray-50 text-gray-700 font-bold flex items-center gap-2 relative z-50 transition-colors"><span class="w-4 text-center">⬆️</span> 往上移動</button>
+                          <button v-if="itemIndex < tripData.itinerary[activeDayTab].items.length - 1" @click="moveItemDown(activeDayTab, itemIndex)" class="text-left px-3 py-1.5 hover:bg-gray-50 text-gray-700 font-bold flex items-center gap-2 relative z-50 transition-colors"><span class="w-4 text-center">⬇️</span> 往下移動</button>
+                          <div v-if="tripData.itinerary[activeDayTab].items.length > 1" class="h-px bg-gray-100 my-1 relative z-50"></div>
                           <button @click="insertItemAfter(activeDayTab, itemIndex)" class="text-left px-3 py-1.5 hover:bg-blue-50 text-blue-600 font-bold flex items-center gap-2 relative z-50 transition-colors"><span class="w-4 text-center">➕</span> 插入新行程於下方</button>
                           <div class="h-px bg-gray-100 my-1 relative z-50"></div>
                           <button @click="item.isImportant = !item.isImportant; item.showMenu = false" class="text-left px-3 py-1.5 hover:bg-red-50 flex items-center gap-2" :class="item.isImportant ? 'text-red-600 font-bold' : 'text-gray-700'"><span class="w-4 text-center">⭐</span> {{ item.isImportant ? '取消重要標記' : '標記為重要行程' }}</button>
