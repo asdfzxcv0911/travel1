@@ -474,9 +474,9 @@
              </button>
              
              <!-- 補回唯讀模式提示標籤 -->
-             <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️️ 唯讀預覽中</span>
+             <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v68</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v70</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -564,6 +564,11 @@
                     <span>🛂</span>
                     <span>入境 / 緊急</span>
                   </button>
+                  <button @click="openGoogleMapModal()"
+                          class="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors shadow-sm cursor-pointer">
+                    <span>🗺️</span>
+                    <span>Google地圖 ＆ 路線</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -638,6 +643,87 @@
           <div class="px-5 py-3 border-t border-gray-100 bg-white flex justify-between items-center shrink-0">
             <span class="text-xs font-bold text-gray-500">{{ companionSummaryText || '共 0 人' }}</span>
             <button @click="showCompanionModal = false" class="px-5 py-2 theme-bg text-white rounded-xl font-bold text-xs shadow-sm">完成</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🗺️ Google Maps 官方內嵌地圖預覽視窗 Modal (v69 修正版) -->
+      <div v-if="showGoogleMapModal" class="fixed inset-0 bg-black/65 z-[650] flex justify-center items-center p-2 sm:p-4 animate-fade-in backdrop-blur-sm" @click.self="showGoogleMapModal = false">
+        <div class="bg-white rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col h-[86vh] max-h-[86vh] animate-modal-bounce">
+          <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 flex justify-between items-center text-white shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-lg">🗺️</span>
+              <h3 class="font-black text-sm md:text-base truncate">Google 地圖預覽：{{ googleMapQuery || tripData.destination || '探索周邊' }}</h3>
+            </div>
+            <button @click="showGoogleMapModal = false" class="text-white/80 hover:text-white text-xl font-bold px-1">✕</button>
+          </div>
+
+          <!-- 上方控制列：快速切換天數、景點與自訂搜尋 -->
+          <div class="p-3 bg-gray-50 border-b border-gray-200 space-y-2 shrink-0">
+            <!-- 天數與分類切換 -->
+            <div class="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-0.5">
+              <button @click="selectMapDay('dest')"
+                      :class="['px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all', mapActiveDay === 'dest' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100']">
+                📍 目的地總覽
+              </button>
+              <button v-for="(d, dIdx) in tripData.itinerary" :key="'map-d-'+dIdx"
+                      @click="selectMapDay(dIdx)"
+                      :class="['px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all', mapActiveDay === dIdx ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100']">
+                Day {{ dIdx + 1 }}
+              </button>
+              <button v-if="tripData.accommodations && tripData.accommodations.length > 0"
+                      @click="selectMapDay('hotels')"
+                      :class="['px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all', mapActiveDay === 'hotels' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50']">
+                🏨 住宿飯店
+              </button>
+            </div>
+
+            <!-- 該天景點膠囊清單 -->
+            <div v-if="typeof mapActiveDay === 'number' && tripData.itinerary[mapActiveDay]" class="flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5">
+              <span v-if="tripData.itinerary[mapActiveDay].items.length === 0" class="text-xs text-gray-400 font-bold py-0.5">當日尚無安排景點</span>
+              <button v-for="(it, iIdx) in tripData.itinerary[mapActiveDay].items" :key="'map-it-'+iIdx"
+                      @click="setMapSpot((tripData.destination ? tripData.destination + ' ' : '') + (it.activity || ''))"
+                      :class="['px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap border transition-all flex items-center gap-1', googleMapQuery.includes(it.activity) && it.activity ? 'bg-emerald-50 border-emerald-400 text-emerald-800 shadow-sm' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-100']">
+                <span class="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center font-black">{{ iIdx + 1 }}</span>
+                <span>{{ it.activity || '未命名' }}</span>
+              </button>
+            </div>
+
+            <!-- 住宿飯店膠囊清單 -->
+            <div v-if="mapActiveDay === 'hotels'" class="flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5">
+              <button v-for="(h, hIdx) in tripData.accommodations" :key="'map-h-'+hIdx"
+                      @click="setMapSpot(h.address || ((tripData.destination ? tripData.destination + ' ' : '') + (h.name || '')))"
+                      class="px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap border bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-all flex items-center gap-1">
+                <span>🏨</span>
+                <span>{{ h.name || '未命名飯店' }}</span>
+              </button>
+            </div>
+
+            <!-- 手動輸入地名搜尋列 -->
+            <div class="flex items-center gap-1.5">
+              <input type="text" v-model="customMapInput" @keyup.enter="setMapSpot(customMapInput)" placeholder="輸入任何景點、餐廳或地址，按搜尋即時定位..." class="flex-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-emerald-500">
+              <button @click="setMapSpot(customMapInput)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm shrink-0">🔍 定位</button>
+            </div>
+          </div>
+
+          <!-- 內嵌 Google Maps Iframe 主體 -->
+          <div class="flex-1 bg-gray-100 relative w-full h-full">
+            <iframe :key="googleMapEmbedUrl"
+                    :src="googleMapEmbedUrl"
+                    class="w-full h-full border-0"
+                    allowfullscreen
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+
+          <!-- 底部操作列 -->
+          <div class="px-4 py-2.5 bg-white border-t border-gray-200 flex justify-between items-center shrink-0">
+            <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(googleMapQuery || tripData.destination || '台灣')"
+               target="_blank"
+               class="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl border border-blue-200 transition-colors">
+              <span>↗️</span><span>在 Google Maps App 開啟完整導航</span>
+            </a>
+            <button @click="showGoogleMapModal = false" class="px-5 py-1.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-bold text-xs shadow-sm">關閉</button>
           </div>
         </div>
       </div>
@@ -996,6 +1082,110 @@
         </div>
       </div>
 
+      <!-- 🗺️ v70 Google Maps 內嵌地圖 ＆ 路線畫線 Modal -->
+      <div v-if="showGoogleMapModal" class="fixed inset-0 bg-black/60 z-[650] flex justify-center items-center p-2 sm:p-4 animate-fade-in backdrop-blur-sm" @click.self="showGoogleMapModal = false">
+        <div class="bg-white rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col h-[88vh] animate-modal-bounce">
+          <!-- 標題列 -->
+          <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 flex justify-between items-center text-white shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-xl">🗺️</span>
+              <div class="truncate">
+                <h3 class="font-black text-sm md:text-base leading-tight truncate">Google 地圖預覽 ＆ 行程路線圖</h3>
+                <p class="text-[10px] text-emerald-100 font-bold truncate">點選景點看單點位置，點選景點中間的「🚗 路線」直接畫出兩點導航路線</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <a v-if="fullDayMultiStopUrl" :href="fullDayMultiStopUrl" target="_blank"
+                 class="bg-amber-400 hover:bg-amber-300 text-gray-900 font-black px-2.5 py-1.5 rounded-xl text-xs shadow-md transition-transform hover:scale-105 flex items-center gap-1"
+                 title="在 Google Maps 一口氣串聯並畫出當日所有景點總路線">
+                <span>🛣️</span>
+                <span>展開當日全路線 ({{ currentMapDaySpots.length }}站)</span>
+              </a>
+              <button @click="showGoogleMapModal = false" class="text-white/80 hover:text-white text-2xl font-bold px-1">&times;</button>
+            </div>
+          </div>
+
+          <!-- 控制面板：天數切換 + 景點與分段路線按鈕 + 自訂搜尋 -->
+          <div class="p-3 bg-gray-50 border-b border-gray-200 space-y-2.5 shrink-0">
+            <!-- 第一排：選擇 Day 或 住宿飯店 + 搜尋框 -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-0.5">
+                <button v-for="(d, dIdx) in tripData.itinerary" :key="'gmap-day-'+dIdx"
+                        @click="selectMapDay(dIdx)"
+                        :class="['px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap transition-all shadow-sm',
+                                 googleMapDayIdx === dIdx ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-emerald-50']">
+                  Day {{ dIdx + 1 }}
+                </button>
+                <button v-if="tripData.accommodations && tripData.accommodations.length > 0"
+                        @click="selectMapDay('hotels')"
+                        :class="['px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap transition-all shadow-sm',
+                                 googleMapDayIdx === 'hotels' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50']">
+                  🏨 住宿飯店
+                </button>
+              </div>
+
+              <!-- 手動輸入地標或路線搜尋 -->
+              <div class="flex items-center gap-1 shrink-0">
+                <input type="text" v-model="customMapInput" @keyup.enter="applyCustomMapSearch" placeholder="輸入任意地名搜尋..." class="bg-white border border-gray-300 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-700 outline-none focus:border-emerald-500 w-full sm:w-44">
+                <button @click="applyCustomMapSearch" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 shadow-sm">🔍 定位</button>
+              </div>
+            </div>
+
+            <!-- 第二排：當日景點膠囊 & 中間的「➔ 路線」按鈕 -->
+            <div v-if="currentMapDaySpots.length > 0" class="flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-1">
+              <template v-for="(spot, sIdx) in currentMapDaySpots" :key="'spot-'+sIdx">
+                <!-- 單點按鈕 -->
+                <button @click="viewSingleSpotOnMap(spot, sIdx)"
+                        :class="['px-2.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all flex items-center gap-1 border shadow-sm shrink-0',
+                                 googleMapMode === 'spot' && activeSpotIdx === sIdx ? 'bg-emerald-600 text-white border-emerald-600 scale-105' : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-400']">
+                  <span class="w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black"
+                        :class="googleMapMode === 'spot' && activeSpotIdx === sIdx ? 'bg-white text-emerald-700' : 'bg-emerald-100 text-emerald-700'">
+                    {{ sIdx + 1 }}
+                  </span>
+                  <span>{{ spot.label }}</span>
+                </button>
+
+                <!-- 兩點之間的「畫出路線」按鈕 -->
+                <button v-if="sIdx < currentMapDaySpots.length - 1"
+                        @click="viewSegmentRouteOnMap(currentMapDaySpots[sIdx], currentMapDaySpots[sIdx + 1], sIdx)"
+                        :class="['px-2 py-1 rounded-lg text-[11px] font-black whitespace-nowrap transition-all flex items-center gap-0.5 border shrink-0',
+                                 googleMapMode === 'route' && activeRouteIdx === sIdx ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105' : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100']"
+                        title="在下方地圖直接畫出這兩站的導航路線">
+                  <span>🚗</span>
+                  <span>路線</span>
+                  <span>➔</span>
+                </button>
+              </template>
+            </div>
+            <div v-else class="text-xs font-bold text-gray-400 py-1">
+              此日尚無填寫行程名稱，可在右上角輸入框直接搜尋任何地點。
+            </div>
+          </div>
+
+          <!-- 目前地圖狀態提示列 -->
+          <div class="bg-emerald-50/70 px-4 py-1.5 border-b border-emerald-100 flex items-center justify-between text-xs font-bold text-emerald-800 shrink-0">
+            <div class="truncate">
+              <span v-if="googleMapMode === 'route'">🛣️ 路線模式：<b>{{ routeFromLabel }}</b> ➔ <b>{{ routeToLabel }}</b></span>
+              <span v-else>📍 單點定位：<b>{{ currentSpotLabel }}</b></span>
+            </div>
+            <a :href="externalGoogleMapsUrl" target="_blank" class="text-blue-600 hover:underline shrink-0 ml-2 flex items-center gap-0.5">
+              <span>↗ 在 Google Maps 開啟</span>
+            </a>
+          </div>
+
+          <!-- Google Maps Iframe 主視窗 -->
+          <div class="flex-1 w-full bg-gray-100 relative">
+            <iframe v-if="googleMapEmbedUrl"
+                    :key="googleMapEmbedUrl"
+                    :src="googleMapEmbedUrl"
+                    class="w-full h-full border-0"
+                    allowfullscreen
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+        </div>
+      </div>
+
       <!-- 天氣預報 Modal -->
       <div v-if="showWeatherModal" class="fixed inset-0 bg-black/60 z-[600] flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm" @click.self="showWeatherModal = false">
         <div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
@@ -1307,7 +1497,12 @@
                             </div>
                         </div>
 
-                        <!-- 右下角：導航紙飛機按鈕 (手機版縮小，不干擾文字排版) -->
+                        <!-- 右下角：全螢幕內嵌地圖預覽按鈕 + 導航紙飛機按鈕 -->
+                        <button @click.stop="openGoogleMapForItem(dayIndex, itemIndex, item)"
+                                class="absolute bottom-0 right-9 md:right-12 w-8 h-8 md:w-10 md:h-10 rounded-full shadow-md flex items-center justify-center text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all z-10 hover:scale-105"
+                                title="在視窗內鑲嵌預覽 Google 地圖">
+                          <span class="text-xs md:text-sm">🗺️</span>
+                        </button>
                         <a v-if="item.map" :href="item.map" target="_blank" class="absolute bottom-0 right-0 w-8 h-8 md:w-10 md:h-10 rounded-full shadow-md flex items-center justify-center text-white bg-blue-500 hover:bg-blue-600 transition-all z-10 hover:scale-105" title="開啟地圖導航">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 md:w-4 md:h-4 -ml-0.5 mt-0.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
                         </a>
@@ -2942,6 +3137,18 @@
         const showCompanionModal = ref(false);
         const showMarqueeModal = ref(false);
         const showEmergencyModal = ref(false);
+        const showGoogleMapModal = ref(false);
+        const googleMapDayIdx = ref(0);
+        const googleMapMode = ref('spot'); // 'spot' | 'route'
+        const activeSpotIdx = ref(0);
+        const activeRouteIdx = ref(0);
+        const currentSpotLabel = ref('');
+        const currentSpotQuery = ref('');
+        const routeFromLabel = ref('');
+        const routeToLabel = ref('');
+        const routeFromQuery = ref('');
+        const routeToQuery = ref('');
+        const customMapInput = ref('');
         const emergencyTab = ref('entry');
         const nowTick = ref(Date.now());
         setInterval(() => { nowTick.value = Date.now(); }, 15000);
@@ -3008,7 +3215,111 @@
                  showWeatherModal.value ||
                  showCompanionModal.value ||
                  showMarqueeModal.value ||
-                 showEmergencyModal.value;
+                 showEmergencyModal.value ||
+                 showGoogleMapModal.value;
+        });
+
+        // --- v70: Google Maps 官方免金鑰鑲嵌與路線畫線邏輯 ---
+        const cleanSearchPlace = (name) => {
+          if (!name) return '';
+          const dest = (tripData.value.destination || '').trim();
+          const cleanName = String(name).replace(/[()（）【】「」]/g, ' ').trim();
+          if (dest && !cleanName.includes(dest)) return `${dest} ${cleanName}`;
+          return cleanName;
+        };
+
+        const currentMapDaySpots = computed(() => {
+          if (googleMapDayIdx.value === 'hotels') {
+            return (tripData.value.accommodations || [])
+              .filter(h => h.name && h.name.trim())
+              .map(h => ({ label: h.name.trim(), query: cleanSearchPlace(h.address || h.name) }));
+          }
+          const day = tripData.value.itinerary?.[googleMapDayIdx.value];
+          if (!day || !Array.isArray(day.items)) return [];
+          return day.items
+            .filter(i => i.activity && i.activity.trim())
+            .map(i => ({ label: i.activity.trim(), query: cleanSearchPlace(i.activity) }));
+        });
+
+        const viewSingleSpotOnMap = (spot, idx = 0) => {
+          googleMapMode.value = 'spot';
+          activeSpotIdx.value = idx;
+          currentSpotLabel.value = spot.label;
+          currentSpotQuery.value = spot.query;
+        };
+
+        const viewSegmentRouteOnMap = (spotA, spotB, idx = 0) => {
+          googleMapMode.value = 'route';
+          activeRouteIdx.value = idx;
+          routeFromLabel.value = spotA.label;
+          routeToLabel.value = spotB.label;
+          routeFromQuery.value = spotA.query;
+          routeToQuery.value = spotB.query;
+        };
+
+        const selectMapDay = (dIdx) => {
+          googleMapDayIdx.value = dIdx;
+          nextTick(() => {
+            const spots = currentMapDaySpots.value;
+            if (spots.length >= 2) {
+              // 若當日有 2 個以上景點，預設直接畫出第 1 站 ➔ 第 2 站路線！
+              viewSegmentRouteOnMap(spots[0], spots[1], 0);
+            } else if (spots.length === 1) {
+              viewSingleSpotOnMap(spots[0], 0);
+            } else {
+              googleMapMode.value = 'spot';
+              currentSpotLabel.value = tripData.value.destination || '台灣';
+              currentSpotQuery.value = tripData.value.destination || '台灣';
+            }
+          });
+        };
+
+        const openGoogleMapModal = () => {
+          const defaultDay = (typeof activeDayTab.value === 'number') ? activeDayTab.value : 0;
+          showGoogleMapModal.value = true;
+          selectMapDay(defaultDay);
+        };
+
+        const openGoogleMapForItem = (dayIdx, itemIdx, item) => {
+          googleMapDayIdx.value = dayIdx;
+          showGoogleMapModal.value = true;
+          const label = (item.activity || tripData.value.destination || '景點').trim();
+          const query = cleanSearchPlace(label);
+          const spots = currentMapDaySpots.value;
+          const foundIdx = spots.findIndex(s => s.label === label);
+          viewSingleSpotOnMap({ label, query }, foundIdx >= 0 ? foundIdx : 0);
+        };
+
+        const applyCustomMapSearch = () => {
+          const val = customMapInput.value.trim();
+          if (!val) return;
+          googleMapMode.value = 'spot';
+          activeSpotIdx.value = -1;
+          currentSpotLabel.value = val;
+          currentSpotQuery.value = val;
+        };
+
+        const googleMapEmbedUrl = computed(() => {
+          if (googleMapMode.value === 'route' && routeFromQuery.value && routeToQuery.value) {
+            return `https://www.google.com/maps?saddr=${encodeURIComponent(routeFromQuery.value)}&daddr=${encodeURIComponent(routeToQuery.value)}&hl=zh-TW&output=embed`;
+          }
+          const q = currentSpotQuery.value || tripData.value.destination || '台北';
+          return `https://www.google.com/maps?q=${encodeURIComponent(q)}&z=15&hl=zh-TW&output=embed`;
+        });
+
+        const externalGoogleMapsUrl = computed(() => {
+          if (googleMapMode.value === 'route' && routeFromQuery.value && routeToQuery.value) {
+            return `https://www.google.com/maps/dir/${encodeURIComponent(routeFromQuery.value)}/${encodeURIComponent(routeToQuery.value)}`;
+          }
+          const q = currentSpotQuery.value || tripData.value.destination || '台北';
+          return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+        });
+
+        const fullDayMultiStopUrl = computed(() => {
+          const spots = currentMapDaySpots.value;
+          if (!spots || spots.length < 2) return '';
+          const path = spots.map(s => encodeURIComponent(s.query)).join('/');
+          return `https://www.google.com/maps/dir/${path}`;
         });
 
         watch(isAnyModalOpen, (isOpen) => {
@@ -4689,6 +5000,8 @@
           showCompanionModal, companionSummaryText, addMember, removeMember,
           showMarqueeModal, activeMarqueeText, isMarqueeItemActive, addMarqueeItem, removeMarqueeItem, applyMarqueePreset, setMarqueeDateToday, setMarqueeDateTrip,
           showEmergencyModal, emergencyTab, addEmergencyQrUrl, handleEmergencyQrUpload, autoFillEntryCardFromTrip, autoFillEmergencyByDestination,
+          showGoogleMapModal, googleMapDayIdx, googleMapMode, activeSpotIdx, activeRouteIdx, currentSpotLabel, routeFromLabel, routeToLabel, customMapInput,
+          currentMapDaySpots, viewSingleSpotOnMap, viewSegmentRouteOnMap, selectMapDay, openGoogleMapModal, openGoogleMapForItem, applyCustomMapSearch, googleMapEmbedUrl, externalGoogleMapsUrl, fullDayMultiStopUrl,
           handleTouchStart, handleTouchMove, handleTouchEnd, prevImage, nextImage,
           imgZoom, imgPanX, imgPanY, isDraggingImg, resetImgZoom, closeActiveImage, zoomInImg, zoomOutImg, toggleDoubleClickZoom, handleImageWheel, handleMouseDown, handleMouseMove, handleMouseUp,
           alertDialog, confirmDialog, customAlert, customConfirm,
