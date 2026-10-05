@@ -474,9 +474,9 @@
              </button>
              
              <!-- 補回唯讀模式提示標籤 -->
-             <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️ 唯讀預覽中</span>
+             <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁️️ 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v67</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v68</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -2278,8 +2278,15 @@
                       <input v-if="isEditor" type="text" v-model="hotel.dateRange" placeholder="點擊選擇起訖日期" class="range-date-picker w-full text-center text-sm font-black text-indigo-700 bg-transparent cursor-pointer outline-none placeholder-indigo-300">
                       <div v-else class="text-sm font-black text-indigo-700 tracking-wide">{{ hotel.dateRange || '尚未設定日期' }}</div>
                       
-                      <div class="flex justify-center gap-1.5 mt-1">
-                          <span class="text-[10px] font-bold bg-indigo-100 text-indigo-700 rounded-full px-2 py-0.5">{{ calculateNights(hotel.dateRange) }}</span>
+                      <div class="flex flex-wrap items-center justify-center gap-1.5 mt-1.5 w-full">
+                          <span class="text-[10px] font-bold bg-indigo-100 text-indigo-700 rounded-full px-2.5 py-0.5 shrink-0">{{ calculateNights(hotel.dateRange) }}</span>
+                          <div v-if="isEditor" class="flex items-center bg-white border border-indigo-200 rounded-full px-2.5 py-0.5 shadow-sm focus-within:border-indigo-400">
+                              <span class="text-[10px] mr-1 shrink-0">🛏️</span>
+                              <input type="text" v-model="hotel.roomType" placeholder="輸入房型 (例: 豪華雙床房)" class="text-[10px] font-bold text-indigo-700 bg-transparent outline-none w-28 sm:w-36 placeholder-indigo-300 text-center">
+                          </div>
+                          <span v-else-if="hotel.roomType" class="text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 rounded-full px-2.5 py-0.5 flex items-center gap-1">
+                              <span>🛏️</span><span>{{ hotel.roomType }}</span>
+                          </span>
                       </div>
                   </div>
 
@@ -4267,7 +4274,7 @@
         
         const addAccommodation = () => { 
             tripData.value.accommodations.push({ 
-                id: generateId(), name: '', nameLink: '', stars: '5', dateRange: '', checkInTime: '15:00', checkOutTime: '11:00', 
+                id: generateId(), name: '', nameLink: '', stars: '5', dateRange: '', roomType: '', checkInTime: '15:00', checkOutTime: '11:00', 
                 address: '', addressLink: '', phone: '', bookingRef: '', bookingLink: '', editBookingLink: false, bookingImages: [], tempBookingImageUrl: '', memo: '',
                 amenities: { breakfast: false, breakfastInfo: '', hasParking: false, parkingInfo: '', wifi: false, luggage: false }
             }); 
