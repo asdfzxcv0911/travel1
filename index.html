@@ -433,6 +433,10 @@
                   <input type="checkbox" v-model="setupData.modules.emergency" class="accent-[var(--theme-color)] w-3.5 h-3.5 rounded cursor-pointer shrink-0">
                   <span class="text-xs font-bold text-gray-600 whitespace-nowrap flex items-center">🛂<span class="text-[11px] tracking-tighter ml-0.5">入境緊急</span></span>
                </label>
+               <label class="flex items-center justify-center gap-1 cursor-pointer bg-gray-50 hover:bg-gray-100 w-full min-w-0 h-[38px] px-1 rounded-lg border border-gray-200 transition-colors shadow-sm overflow-hidden">
+                  <input type="checkbox" v-model="setupData.modules.phrases" class="accent-[var(--theme-color)] w-3.5 h-3.5 rounded cursor-pointer shrink-0">
+                  <span class="text-xs font-bold text-gray-600 whitespace-nowrap">🗣️ 會話</span>
+               </label>
             </div>
           </div>
           <!-- 模組開關結束 -->
@@ -476,7 +480,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v70</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v71</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -920,6 +924,33 @@
           <div class="p-5 text-gray-700 text-sm whitespace-pre-line leading-relaxed max-h-[60vh] overflow-y-auto">
             {{ activeMemo }}
           </div>
+        </div>
+      </div>
+
+      <!-- 🗣️ v71 指指通：全螢幕超大字卡 Modal -->
+      <div v-if="activePhraseCard" class="fixed inset-0 bg-gray-950/95 z-[850] flex flex-col justify-between p-6 text-white animate-fade-in select-none" @click.self="activePhraseCard = null">
+        <div class="flex justify-between items-center">
+          <span class="bg-white/10 text-white/90 px-3 py-1 rounded-full text-xs font-bold border border-white/15">
+            {{ currentLangObj.flag }} {{ currentLangObj.name }} 指指通字卡
+          </span>
+          <button @click="activePhraseCard = null" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-2xl font-bold">&times;</button>
+        </div>
+
+        <div class="my-auto text-center space-y-6 px-2">
+          <p class="text-base md:text-xl font-bold text-amber-300">{{ activePhraseCard.zh }}</p>
+          <div class="text-3xl sm:text-5xl md:text-6xl font-black leading-tight break-words tracking-wide py-4">
+            {{ activePhraseCard.target }}
+          </div>
+          <p v-if="activePhraseCard.romaji" class="text-sm md:text-lg font-mono text-gray-300">{{ activePhraseCard.romaji }}</p>
+        </div>
+
+        <div class="flex justify-center gap-3 pb-4">
+          <button @click="speakPhrase(activePhraseCard.target, activePhraseCard.lang || phraseLang)" class="px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base shadow-lg flex items-center gap-2 active:scale-95 transition-transform">
+            <span>🔊</span><span>播放語音</span>
+          </button>
+          <button @click="activePhraseCard = null" class="px-6 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-base">
+            關閉字卡
+          </button>
         </div>
       </div>
 
@@ -2845,6 +2876,151 @@
           </button>
         </div>
 
+        <!-- ==================== 【🗣️ 旅遊會話與語音翻譯模組 (v71 新增)】 ==================== -->
+        <div v-if="currentView === '會話'" class="space-y-4">
+          <!-- 標題與語言/語速控制列 -->
+          <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-2 px-2 md:px-0">
+            <div>
+              <h2 class="text-xl md:text-2xl font-black text-gray-800 flex items-center gap-2">
+                <span>🗣️ 旅遊實用會話 ＆ 真人發音</span>
+              </h2>
+              <p class="text-[11px] md:text-xs text-gray-500 font-bold mt-0.5">
+                已依目的地「{{ tripData.destination || '預設' }}」自動對應語言，點擊 🔊 即可直接發音、點 🔍 可全螢幕放大給店員看
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- 語言切換選單 -->
+              <div class="flex items-center bg-white border border-indigo-200 rounded-xl px-3 py-1.5 shadow-sm">
+                <span class="text-xs font-bold text-gray-400 mr-1.5">語言:</span>
+                <select v-model="phraseLang" class="bg-transparent font-black text-xs md:text-sm text-indigo-700 outline-none cursor-pointer">
+                  <option v-for="l in phraseLanguages" :key="l.code" :value="l.code">{{ l.flag }} {{ l.name }}</option>
+                </select>
+              </div>
+
+              <!-- 語速開關 -->
+              <button @click="speechSlow = !speechSlow"
+                      :class="['px-3 py-1.5 rounded-xl text-xs font-black border transition-all shadow-sm flex items-center gap-1',
+                               speechSlow ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50']"
+                      title="切換發音速度">
+                <span>{{ speechSlow ? '🐢 慢速發音 (0.75x)' : '🐇 正常語速 (1.0x)' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 區塊一：⚡ 免金鑰即時自由翻譯機 -->
+          <div class="bg-gradient-to-br from-indigo-600 to-blue-600 rounded-2xl p-4 md:p-5 text-white shadow-md mx-2 md:mx-0 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs md:text-sm font-black flex items-center gap-1.5">
+                <span>⚡</span><span>臨時自由翻譯機（輸入中文 ➔ 翻成{{ currentLangObj.name }}並發音）</span>
+              </span>
+              <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">免金鑰免費引擎</span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input type="text" v-model="translateInput" @keyup.enter="runInstantTranslate"
+                     placeholder="輸入想說的中文 (例：這道菜有加牛肉嗎？ / 可以給我兒童餐具嗎？)"
+                     class="flex-1 bg-white text-gray-800 rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none placeholder-gray-400 shadow-inner">
+              <button @click="runInstantTranslate" :disabled="translating"
+                      class="bg-amber-400 hover:bg-amber-300 disabled:opacity-60 text-gray-900 font-black px-5 py-2.5 rounded-xl text-sm shadow-md transition-transform active:scale-95 shrink-0 flex items-center justify-center gap-1.5">
+                <span>{{ translating ? '⏳ 翻譯中...' : '✨ 立即翻譯' }}</span>
+              </button>
+            </div>
+
+            <!-- 翻譯結果顯示區 -->
+            <div v-if="translateOutput" class="bg-white/15 backdrop-blur-md rounded-xl p-3.5 border border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+              <div class="space-y-1 min-w-0 flex-1">
+                <div class="text-[11px] font-bold text-indigo-100">翻譯結果 ({{ currentLangObj.flag }} {{ currentLangObj.name }})：</div>
+                <div class="text-lg md:text-xl font-black text-white break-words">{{ translateOutput }}</div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button @click="speakPhrase(translateOutput, phraseLang)" class="bg-white text-indigo-700 hover:bg-indigo-50 px-3.5 py-2 rounded-xl text-xs font-black shadow-sm flex items-center gap-1">
+                  <span>🔊</span><span>發音</span>
+                </button>
+                <button @click="activePhraseCard = { zh: translateInput, target: translateOutput, romaji: '', lang: phraseLang }" class="bg-black/30 hover:bg-black/40 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1">
+                  <span>🔍</span><span>放大字卡</span>
+                </button>
+                <button v-if="isEditor" @click="saveTranslatedToCustom" class="bg-amber-400 hover:bg-amber-300 text-gray-900 px-3 py-2 rounded-xl text-xs font-black shadow-sm flex items-center gap-1" title="存入我的自訂會話">
+                  <span>⭐</span><span>收藏</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 區塊二：情境分類膠囊切換列 -->
+          <div class="flex gap-1.5 overflow-x-auto hide-scrollbar px-2 md:px-0 py-1">
+            <button v-for="cat in phraseCategories" :key="cat.key"
+                    @click="activePhraseCategory = cat.key"
+                    :class="['px-3.5 py-2 rounded-xl text-xs md:text-sm font-black whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 border',
+                             activePhraseCategory === cat.key ? 'theme-bg text-white border-transparent scale-105' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50']">
+              <span>{{ cat.icon }}</span>
+              <span>{{ cat.label }}</span>
+              <span v-if="cat.key === 'custom'" class="bg-black/15 px-1.5 py-0.2 rounded-full text-[10px]">
+                {{ tripData.customPhrases ? tripData.customPhrases.length : 0 }}
+              </span>
+            </button>
+          </div>
+
+          <!-- 自訂會話專屬新增面板 -->
+          <div v-if="activePhraseCategory === 'custom' && isEditor" class="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 mx-2 md:mx-0 space-y-2.5">
+            <h4 class="text-xs font-black text-amber-900 flex items-center gap-1">⭐ 新增我的專屬常用句（會自動儲存於此行程雲端）</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input type="text" v-model="newCustomPhrase.zh" placeholder="中文意思 (例: 我對蝦蟹過敏)" class="bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-amber-400">
+              <input type="text" v-model="newCustomPhrase.target" placeholder="外語原文 (可由上方翻譯機自動收藏)" class="bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-amber-400">
+              <div class="flex gap-2">
+                <input type="text" v-model="newCustomPhrase.romaji" placeholder="發音提示/備註 (選填)" class="flex-1 bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-amber-400">
+                <button @click="addCustomPhraseManual" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-xs font-black shrink-0 shadow-sm">＋ 新增</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 區塊三：會話卡片網格 -->
+          <div v-if="currentPhraseList.length === 0" class="text-center py-12 bg-white rounded-2xl border border-gray-200 mx-2 md:mx-0">
+            <div class="text-4xl mb-2">⭐</div>
+            <p class="text-gray-400 font-bold text-sm">目前還沒有自訂收藏的會話喔！</p>
+            <p class="text-gray-400 text-xs mt-1">您可以使用上方的「臨時自由翻譯機」翻譯後點擊「⭐ 收藏」加入。</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 px-2 md:px-0 pb-10">
+            <div v-for="(p, pIdx) in currentPhraseList" :key="p.id || pIdx"
+                 class="bg-white rounded-2xl p-4 shadow-sm border border-gray-200/90 hover:shadow-md hover:border-indigo-200 transition-all flex items-center justify-between gap-3 group">
+              
+              <!-- 左側三行文字 -->
+              <div class="flex-1 min-w-0 space-y-1 cursor-pointer" @click="speakPhrase(p.target, p.lang || phraseLang)">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs md:text-sm font-bold text-gray-500">{{ p.zh }}</span>
+                </div>
+                <div class="text-base md:text-xl font-black text-gray-900 break-words leading-snug group-hover:text-indigo-600 transition-colors">
+                  {{ p.target }}
+                </div>
+                <div v-if="p.romaji" class="text-[11px] md:text-xs font-mono font-bold text-indigo-500/80">
+                  💬 {{ p.romaji }}
+                </div>
+              </div>
+
+              <!-- 右側操作按鈕 -->
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button @click="speakPhrase(p.target, p.lang || phraseLang)"
+                        class="w-11 h-11 rounded-2xl bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white flex items-center justify-center text-lg shadow-sm transition-all active:scale-90"
+                        title="播放真人語音">
+                  🔊
+                </button>
+                <button @click="activePhraseCard = p"
+                        class="w-10 h-11 rounded-2xl bg-gray-100 hover:bg-gray-800 text-gray-600 hover:text-white flex items-center justify-center text-sm shadow-sm transition-all"
+                        title="全螢幕放大給店員看">
+                  🔍
+                </button>
+                <button v-if="activePhraseCategory === 'custom' && isEditor"
+                        @click="removeCustomPhrase(pIdx)"
+                        class="w-8 h-11 rounded-xl text-gray-300 hover:text-red-500 flex items-center justify-center text-sm font-bold"
+                        title="刪除">
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -2882,7 +3058,7 @@
         const isSetup = ref(false); 
         const saveStatus = ref('');
         let saveTimeout = null;
-        const tabs = ['行程', '航班', '交通', '住宿', '行李', '購物', '花費'];
+        const tabs = ['行程', '航班', '交通', '住宿', '行李', '購物', '花費', '會話'];
         const dayPalette = ['#0ea5e9', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#14b8a6'];
         const currentView = ref('行程');
         const activeDayTab = ref('overview');
@@ -3052,6 +3228,14 @@
         const showMarqueeModal = ref(false);
         const showEmergencyModal = ref(false);
         const showGoogleMapModal = ref(false);
+        const activePhraseCard = ref(null);
+        const phraseLang = ref('ja-JP');
+        const speechSlow = ref(false);
+        const activePhraseCategory = ref('dining');
+        const translateInput = ref('');
+        const translateOutput = ref('');
+        const translating = ref(false);
+        const newCustomPhrase = ref({ zh: '', target: '', romaji: '' });
         const googleMapDayIdx = ref(0);
         const googleMapMode = ref('spot'); // 'spot' | 'route'
         const activeSpotIdx = ref(0);
@@ -3130,8 +3314,313 @@
                  showCompanionModal.value ||
                  showMarqueeModal.value ||
                  showEmergencyModal.value ||
-                 showGoogleMapModal.value;
+                 showGoogleMapModal.value ||
+                 Boolean(activePhraseCard.value);
         });
+
+        // --- v71: 旅遊會話與真人語音發音模組 (免金鑰 Web Speech API + 內建多國字典) ---
+        const phraseLanguages = [
+          { code: 'ja-JP', short: 'ja', name: '日語', flag: '🇯🇵' },
+          { code: 'ko-KR', short: 'ko', name: '韓語', flag: '🇰🇷' },
+          { code: 'en-US', short: 'en', name: '英語', flag: '🇺🇸' },
+          { code: 'th-TH', short: 'th', name: '泰語', flag: '🇹🇭' },
+          { code: 'vi-VN', short: 'vi', name: '越南語', flag: '🇻🇳' },
+          { code: 'fr-FR', short: 'fr', name: '法語', flag: '🇫🇷' },
+          { code: 'de-DE', short: 'de', name: '德語', flag: '🇩🇪' },
+          { code: 'es-ES', short: 'es', name: '西班牙語', flag: '🇪🇸' }
+        ];
+
+        const phraseCategories = [
+          { key: 'dining', icon: '🍽️', label: '餐廳點餐' },
+          { key: 'shopping', icon: '🛍️', label: '購物退稅' },
+          { key: 'transport', icon: '🚇', label: '交通問路' },
+          { key: 'hotel', icon: '🏨', label: '飯店住宿' },
+          { key: 'emergency', icon: '🆘', label: '緊急與萬用' },
+          { key: 'custom', icon: '⭐', label: '自訂收藏' }
+        ];
+
+        const builtInPhrases = {
+          'ja-JP': {
+            dining: [
+              { zh: '不好意思，請問有中文或英文菜單嗎？', target: 'すみません、中国語か英語のメニューはありますか？', romaji: 'Sumimasen, chuugokugo ka eigo no menyuu wa arimasu ka?' },
+              { zh: '我要點這個，請給我一份。', target: 'これを一つお願いします。', romaji: 'Kore wo hitotsu onegaishimasu.' },
+              { zh: '請問這道菜有含牛肉嗎？', target: 'これに牛肉は入っていますか？', romaji: 'Kore ni gyuuniku wa haitte imasu ka?' },
+              { zh: '請給我冰水，謝謝。', target: 'お水をいただけますか？', romaji: 'Omizu wo itadakemasu ka?' },
+              { zh: '不好意思，我要結帳。', target: 'すみません、お会計をお願いします。', romaji: 'Sumimasen, okaikei wo onegaishimasu.' },
+              { zh: '請問可以刷信用卡嗎？', target: 'クレジットカードは使えますか？', romaji: 'Kurejitto kaado wa tsukaemasu ka?' }
+            ],
+            shopping: [
+              { zh: '請問這個多少錢？', target: 'これはいくらですか？', romaji: 'Kore wa ikura desu ka?' },
+              { zh: '請問有新的庫存嗎？', target: '新しい在庫はありますか？', romaji: 'Atarashii zaiko wa arimasu ka?' },
+              { zh: '請問這裡可以辦理退稅（免稅）嗎？', target: '免税（めんぜい）はできますか？', romaji: 'Menzei wa dekimasu ka?' },
+              { zh: '請問這個可以試穿嗎？', target: '試着（しちゃく）してもいいですか？', romaji: 'Shichaku shitemo ii desu ka?' },
+              { zh: '不用袋子，謝謝。', target: '袋は結構です。', romaji: 'Fukuro wa kekkou desu.' }
+            ],
+            transport: [
+              { zh: '請問車站在哪裡？', target: '駅はどこですか？', romaji: 'Eki wa doko desu ka?' },
+              { zh: '請載我到這個地址，謝謝。', target: 'この住所までお願いします。', romaji: 'Kono juusho made onegaishimasu.' },
+              { zh: '請問這班車會到這個地方嗎？', target: 'この電車はここに行きますか？', romaji: 'Kono densha wa koko ni ikimasu ka?' },
+              { zh: '我要在這裡下車。', target: 'ここで降ります。', romaji: 'Koko de orimasu.' }
+            ],
+            hotel: [
+              { zh: '您好，我要辦理入住 (Check-in)。', target: 'チェックインをお願いします。', romaji: 'Chekku-in wo onegaishimasu.' },
+              { zh: '請問可以先寄放行李嗎？', target: '荷物を預かってもらえますか？', romaji: 'Nimotsu wo azukatte moraemasu ka?' },
+              { zh: '請問早餐是幾點開始？', target: '朝食は何時からですか？', romaji: 'Choushoku wa nanji kara desu ka?' },
+              { zh: '我要辦理退房 (Check-out)。', target: 'チェックアウトをお願いします。', romaji: 'Chekku-auto wo onegaishimasu.' }
+            ],
+            emergency: [
+              { zh: '不好意思，請問洗手間在哪裡？', target: 'すみません、お手洗いはどこですか？', romaji: 'Sumimasen, otearai wa doko desu ka?' },
+              { zh: '請幫幫我！我遇到麻煩了。', target: '助けてください！困っています。', romaji: 'Tasukete kudasai! Komatte imasu.' },
+              { zh: '我的護照弄丟了。', target: 'パスポートをなくしました。', romaji: 'Pasupooto wo nakushimashita.' },
+              { zh: '我身體不舒服，需要去醫院。', target: '具合が悪いです。病院へ行きたいです。', romaji: 'Guai ga warui desu. Byouin e ikitai desu.' },
+              { zh: '非常謝謝您的幫忙！', target: '本当にありがとうございます！', romaji: 'Hontou ni arigatou gozaimasu!' }
+            ]
+          },
+          'ko-KR': {
+            dining: [
+              { zh: '不好意思，請問有中文或英文菜單嗎？', target: '저기요, 중국어 또는 영어 메뉴판 있나요?', romaji: 'Jeogiyo, jung-gugeo ttoneun yeongeo menyupan innayo?' },
+              { zh: '我要點這個，請給我一份。', target: '이거 하나 주세요.', romaji: 'Igeo hana juseyo.' },
+              { zh: '這個請不要做太辣。', target: '안 맵게 해주세요.', romaji: 'An maepge haejuseyo.' },
+              { zh: '請給我水，謝謝。', target: '물 좀 주세요.', romaji: 'Mul jom juseyo.' },
+              { zh: '不好意思，我要結帳。', target: '계산해 주세요.', romaji: 'Gyesanhae juseyo.' },
+              { zh: '請問可以刷卡嗎？', target: '카드 결제 되나요?', romaji: 'Kadeu gyeolje doenayo?' }
+            ],
+            shopping: [
+              { zh: '請問這個多少錢？', target: '이거 얼마예요?', romaji: 'Igeo eolmayeyo?' },
+              { zh: '請問有新的商品嗎？', target: '새 상품 있나요?', romaji: 'Sae sangpum innayo?' },
+              { zh: '請問可以現場退稅嗎？', target: '택스 리펀(세금 환급) 되나요?', romaji: 'Taekseu ripeon doenayo?' },
+              { zh: '請問可以試穿嗎？', target: '입어 봐도 되나요?', romaji: 'Ibeo bwado doenayo?' },
+              { zh: '不用袋子，謝謝。', target: '봉투는 필요 없어요.', romaji: 'Bongtuneun piryo eopseoyo.' }
+            ],
+            transport: [
+              { zh: '請問地鐵站在哪裡？', target: '지하철역이 어디예요?', romaji: 'Jihacheol-yeogi eodiyeyo?' },
+              { zh: '請載我到這個地址，謝謝。', target: '이 주소로 가 주세요.', romaji: 'I jusoro ga juseyo.' },
+              { zh: '請在這裡讓我下車。', target: '여기서 내려 주세요.', romaji: 'Yeogiseo naeryeo juseyo.' }
+            ],
+            hotel: [
+              { zh: '您好，我要辦理入住 (Check-in)。', target: '체크인 부탁합니다.', romaji: 'Chekeu-in butakamnida.' },
+              { zh: '請問可以寄放行李嗎？', target: '짐 좀 맡아 주시겠어요?', romaji: 'Jim jom mata jusigesseoyo?' },
+              { zh: '請問 Wi-Fi 密碼是什麼？', target: '와이파이 비밀번호가 뭐예요?', romaji: 'Waipai bimilbeonhoga mwoyeyo?' }
+            ],
+            emergency: [
+              { zh: '請問洗手間在哪裡？', target: '화장실이 어디예요?', romaji: 'Hwajangsil-i eodiyeyo?' },
+              { zh: '請幫幫我！', target: '도와주세요!', romaji: 'Dowajuseyo!' },
+              { zh: '我的護照弄丟了。', target: '여권을 잃어버렸어요.', romaji: 'Yeogwoneul ireobeoryeosseoyo.' },
+              { zh: '非常謝謝您！', target: '정말 감사합니다!', romaji: 'Jeongmal gamsahamnida!' }
+            ]
+          },
+          'th-TH': {
+            dining: [
+              { zh: '請問有英文或圖片菜單嗎？', target: 'มีเมนูภาษาอังกฤษไหมครับ/ค่ะ', romaji: 'Mee menu pha-sa ang-krit mai khrap/kha?' },
+              { zh: '我要點這個。', target: 'เอาอันนี้ครับ/ค่ะ', romaji: 'Ao an-nee khrap/kha.' },
+              { zh: '請不要加辣。', target: 'ไม่เผ็ดนะครับ/ค่ะ', romaji: 'Mai phet na khrap/kha.' },
+              { zh: '我要結帳，謝謝。', target: 'เก็บเงินด้วยครับ/ค่ะ', romaji: 'Kep ngoen duai khrap/kha.' }
+            ],
+            shopping: [
+              { zh: '請問這個多少錢？', target: 'อันนี้เท่าไหร่ครับ/ค่ะ', romaji: 'An-nee thao-rai khrap/kha?' },
+              { zh: '可以算便宜一點嗎？', target: 'ลดหน่อยได้ไหมครับ/ค่ะ', romaji: 'Lot noi dai mai khrap/kha?' },
+              { zh: '請問可以退稅嗎 (VAT Refund)？', target: 'ขอคืนภาษีได้ไหมครับ/ค่ะ', romaji: 'Kho khuen pha-see dai mai khrap/kha?' }
+            ],
+            transport: [
+              { zh: '請載我到這個地方。', target: 'ไปที่นี่ครับ/ค่ะ', romaji: 'Pai thee-nee khrap/kha.' },
+              { zh: '請跳錶計費 (By Meter)。', target: 'กดมิเตอร์นะครับ/ค่ะ', romaji: 'Kot mi-toe na khrap/kha.' },
+              { zh: '請在這裡停車。', target: 'จอดตรงนี้ครับ/ค่ะ', romaji: 'Chot trong-nee khrap/kha.' }
+            ],
+            hotel: [
+              { zh: '我要辦理入住 Check-in。', target: 'มาเช็คอินครับ/ค่ะ', romaji: 'Ma check-in khrap/kha.' },
+              { zh: '請問可以寄放行李嗎？', target: 'ฝากกระเป๋าได้ไหมครับ/ค่ะ', romaji: 'Fak kra-pao dai mai khrap/kha?' }
+            ],
+            emergency: [
+              { zh: '請問洗手間在哪裡？', target: 'ห้องน้ำอยู่ที่ไหนครับ/ค่ะ', romaji: 'Hong-nam yoo thee-nai khrap/kha?' },
+              { zh: '請幫幫我！', target: 'ช่วยด้วยครับ/ค่ะ!', romaji: 'Chuai duai khrap/kha!' },
+              { zh: '謝謝您！', target: 'ขอบคุณมากครับ/ค่ะ', romaji: 'Khop-khun mak khrap/kha.' }
+            ]
+          },
+          'en-US': {
+            dining: [
+              { zh: '請問有英文或圖片菜單嗎？', target: 'Excuse me, do you have an English menu?', romaji: '' },
+              { zh: '我要點這個，謝謝。', target: 'I would like to order this one, please.', romaji: '' },
+              { zh: '請問這道菜含有牛肉或堅果嗎？', target: 'Does this dish contain beef or nuts?', romaji: '' },
+              { zh: '不好意思，我要結帳。', target: 'Excuse me, could we have the check, please?', romaji: '' },
+              { zh: '請問可以刷信用卡嗎？', target: 'Do you accept credit cards?', romaji: '' }
+            ],
+            shopping: [
+              { zh: '請問這個多少錢？', target: 'How much is this?', romaji: '' },
+              { zh: '請問這個可以退稅嗎？', target: 'Can I get a tax refund for this?', romaji: '' },
+              { zh: '請問我可以試穿嗎？', target: 'May I try this on?', romaji: '' },
+              { zh: '請問有新的庫存嗎？', target: 'Do you have a new one in stock?', romaji: '' }
+            ],
+            transport: [
+              { zh: '請問最近的車站在哪裡？', target: 'Where is the nearest station?', romaji: '' },
+              { zh: '請載我到這個地址，謝謝。', target: 'Please take me to this address.', romaji: '' },
+              { zh: '請問這班車有開往這裡嗎？', target: 'Does this train/bus go to this place?', romaji: '' }
+            ],
+            hotel: [
+              { zh: '您好，我要辦理入住 (Check-in)。', target: 'Hi, I would like to check in, please.', romaji: '' },
+              { zh: '請問我們可以先寄放行李嗎？', target: 'Could we leave our luggage here for a while?', romaji: '' },
+              { zh: '請問早餐是幾點供應？', target: 'What time is breakfast served?', romaji: '' }
+            ],
+            emergency: [
+              { zh: '不好意思，請問洗手間在哪裡？', target: 'Excuse me, where is the restroom?', romaji: '' },
+              { zh: '請幫幫我，我弄丟了護照。', target: 'Please help me, I lost my passport.', romaji: '' },
+              { zh: '我需要看醫生。', target: 'I don\'t feel well. I need to see a doctor.', romaji: '' }
+            ]
+          },
+          'vi-VN': {
+            dining: [
+              { zh: '我要點這個，謝謝。', target: 'Cho tôi gọi món này.', romaji: 'Cho toi goi mon nay.' },
+              { zh: '請不要加香菜。', target: 'Đừng cho rau mùi nhé.', romaji: 'Dung cho rau mui nhe.' },
+              { zh: '我要結帳，謝謝。', target: 'Cho tôi tính tiền.', romaji: 'Cho toi tinh tien.' }
+            ],
+            shopping: [
+              { zh: '請問這個多少錢？', target: 'Cái này bao nhiêu tiền?', romaji: 'Cai nay bao nhieu tien?' },
+              { zh: '可以算便宜一點嗎？', target: 'Bớt一點 được không?', romaji: 'Bot mot chut duoc khong?' }
+            ],
+            transport: [
+              { zh: '請載我到這個地址。', target: 'Cho tôi đến địa chỉ này.', romaji: 'Cho toi den dia chi nay.' }
+            ],
+            hotel: [
+              { zh: '我要辦理入住 Check-in。', target: 'Tôi muốn nhận phòng.', romaji: 'Toi muon nhan phong.' },
+              { zh: '可以寄放行李嗎？', target: 'Tôi gửi hành lý ở đây được không?', romaji: 'Toi gui hanh ly o day duoc khong?' }
+            ],
+            emergency: [
+              { zh: '請問洗手間在哪裡？', target: 'Nhà vệ sinh ở đâu vậy?', romaji: 'Nha ve sinh o dau vay?' },
+              { zh: '謝謝您！', target: 'Cảm ơn rất nhiều!', romaji: 'Cam on rat nhieu!' }
+            ]
+          },
+          'fr-FR': {
+            dining: [
+              { zh: '您好，請問有英文菜單嗎？', target: 'Bonjour, avez-vous un menu en anglais ?', romaji: 'Bon-zhoor, a-vay voo un me-nu en an-glay?' },
+              { zh: '我要點這個，謝謝。', target: 'Je voudrais ceci, s\'il vous plaît.', romaji: 'Zhe voo-dray se-see, seel voo play.' },
+              { zh: '不好意思，我要結帳。', target: 'L\'addition, s\'il vous plaît.', romaji: 'La-dee-syon, seel voo play.' }
+            ],
+            shopping: [
+              { zh: '請問這個多少錢？', target: 'Combien ça coûte ?', romaji: 'Kom-byan sa koot?' },
+              { zh: '請問可以辦理退稅嗎？', target: 'Est-ce que je peux avoir la détaxe ?', romaji: 'Es-ke zhe peu a-vwar la day-taks?' }
+            ],
+            transport: [
+              { zh: '請問地鐵站在哪裡？', target: 'Où est la station de métro ?', romaji: 'Oo ay la sta-syon de may-tro?' }
+            ],
+            hotel: [
+              { zh: '您好，我要辦理入住。', target: 'Bonjour, j\'ai une réservation.', romaji: 'Bon-zhoor, zhay uen ray-zer-va-syon.' }
+            ],
+            emergency: [
+              { zh: '請問洗手間在哪裡？', target: 'Excusez-moi, où sont les toilettes ?', romaji: 'Eks-ku-zay mwa, oo son lay twa-let?' },
+              { zh: '非常謝謝您！', target: 'Merci beaucoup !', romaji: 'Mer-see bo-koo!' }
+            ]
+          }
+        };
+
+        const detectLanguageByDestination = (dest) => {
+          if (!dest) return 'ja-JP';
+          const d = dest.toUpperCase();
+          if (d.includes('日') || d.includes('東京') || d.includes('大阪') || d.includes('沖繩') || d.includes('北海道') || d.includes('京都') || d.includes('福岡') || d.includes('名古屋') || d.includes('仙台')) return 'ja-JP';
+          if (d.includes('韓') || d.includes('首爾') || d.includes('釜山') || d.includes('濟州') || d.includes('大邱')) return 'ko-KR';
+          if (d.includes('泰') || d.includes('曼谷') || d.includes('清邁') || d.includes('普吉')) return 'th-TH';
+          if (d.includes('越') || d.includes('河內') || d.includes('胡志明') || d.includes('峴港') || d.includes('富國島')) return 'vi-VN';
+          if (d.includes('法') || d.includes('巴黎') || d.includes('尼斯')) return 'fr-FR';
+          if (d.includes('德') || d.includes('慕尼黑') || d.includes('柏林')) return 'de-DE';
+          if (d.includes('西') || d.includes('馬德里') || d.includes('巴塞隆納')) return 'es-ES';
+          return 'en-US';
+        };
+
+        const currentLangObj = computed(() => {
+          return phraseLanguages.find(l => l.code === phraseLang.value) || phraseLanguages[0];
+        });
+
+        const currentPhraseList = computed(() => {
+          if (activePhraseCategory.value === 'custom') {
+            return tripData.value.customPhrases || [];
+          }
+          const langPack = builtInPhrases[phraseLang.value] || builtInPhrases['en-US'];
+          return langPack[activePhraseCategory.value] || builtInPhrases['en-US'][activePhraseCategory.value] || [];
+        });
+
+        const speakPhrase = (text, langCode = phraseLang.value) => {
+          if (!text) return;
+          if (!('speechSynthesis' in window)) {
+            return customAlert('您的瀏覽器不支援內建語音合成功能喔！');
+          }
+          try {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = langCode;
+            utter.rate = speechSlow.value ? 0.72 : 0.98;
+            const voices = window.speechSynthesis.getVoices();
+            if (voices && voices.length > 0) {
+              const langPrefix = langCode.split('-')[0].toLowerCase();
+              const matched = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-') === langCode.toLowerCase()) ||
+                              voices.find(v => v.lang && v.lang.toLowerCase().startsWith(langPrefix));
+              if (matched) utter.voice = matched;
+            }
+            window.speechSynthesis.speak(utter);
+          } catch (e) {
+            console.error('Speech Error:', e);
+          }
+        };
+
+        const runInstantTranslate = async () => {
+          const text = translateInput.value.trim();
+          if (!text) return;
+          translating.value = true;
+          const targetShort = currentLangObj.value.short || 'en';
+          try {
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-TW&tl=${targetShort}&dt=t&q=${encodeURIComponent(text)}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (Array.isArray(data) && Array.isArray(data[0])) {
+              translateOutput.value = data[0].map(part => part[0]).join('');
+            } else {
+              throw new Error('Fallback');
+            }
+          } catch (err) {
+            try {
+              const res2 = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=zh-TW|${targetShort}`);
+              const data2 = await res2.json();
+              translateOutput.value = data2?.responseData?.translatedText || '';
+            } catch (e2) {
+              customAlert('目前免費翻譯線路忙碌中，請稍後再試！');
+            }
+          } finally {
+            translating.value = false;
+          }
+        };
+
+        const saveTranslatedToCustom = () => {
+          if (!translateOutput.value) return;
+          if (!Array.isArray(tripData.value.customPhrases)) tripData.value.customPhrases = [];
+          tripData.value.customPhrases.unshift({
+            id: Math.random().toString(36).substr(2, 9),
+            zh: translateInput.value.trim(),
+            target: translateOutput.value.trim(),
+            romaji: '',
+            lang: phraseLang.value
+          });
+          activePhraseCategory.value = 'custom';
+          saveStatus.value = '⭐ 已收藏至自訂會話';
+          setTimeout(() => { if (saveStatus.value.includes('已收藏')) saveStatus.value = ''; }, 2500);
+        };
+
+        const addCustomPhraseManual = () => {
+          if (!newCustomPhrase.value.zh.trim() || !newCustomPhrase.value.target.trim()) {
+            return customAlert('請填寫「中文意思」與「外語原文」喔！');
+          }
+          if (!Array.isArray(tripData.value.customPhrases)) tripData.value.customPhrases = [];
+          tripData.value.customPhrases.unshift({
+            id: Math.random().toString(36).substr(2, 9),
+            zh: newCustomPhrase.value.zh.trim(),
+            target: newCustomPhrase.value.target.trim(),
+            romaji: newCustomPhrase.value.romaji.trim(),
+            lang: phraseLang.value
+          });
+          newCustomPhrase.value = { zh: '', target: '', romaji: '' };
+        };
+
+        const removeCustomPhrase = (idx) => {
+          if (Array.isArray(tripData.value.customPhrases)) {
+            tripData.value.customPhrases.splice(idx, 1);
+          }
+        };
 
         // --- v70: Google Maps 官方免金鑰鑲嵌與路線畫線邏輯 ---
         const cleanSearchPlace = (name) => {
@@ -3246,15 +3735,15 @@
           }
         });
 
-        const setupData = ref({ name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true } });
+        const setupData = ref({ name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true, phrases: true } });
         
         const tripData = ref({
           ownerId: '', tripName: '未命名行程', destination: '', startDate: '', endDate: '', themeColor: '#e91e63',
           coEditors: [], companions: ['我', '盈瑜'], memberList: [], marquee: createDefaultMarquee(), emergencyInfo: createDefaultEmergencyInfo(), itinerary: [], expenses: [],
           expenseSettings: { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' },
           coverImage: '',
-          modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true },
-          flights: [], transports: [], accommodations: [], luggage: [], shoppingList: []
+          modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true, phrases: true },
+          flights: [], transports: [], accommodations: [], luggage: [], shoppingList: [], customPhrases: []
         });
 
         const shoppingFilter = ref('ALL');
@@ -3418,7 +3907,7 @@
 
         const visibleTabs = computed(() => {
           let currentTabs = [];
-          const m = tripData.value.modules || { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true };
+          const m = tripData.value.modules || { itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, phrases: true };
           
           if (m.itinerary) currentTabs.push('行程');
           if (m.flights) currentTabs.push('航班');
@@ -3432,6 +3921,7 @@
              if (isEditor.value) { currentTabs.push('花費'); }
              else if (tripData.value.expenseSettings && tripData.value.expenseSettings.isPublic) { currentTabs.push('花費'); }
           }
+          if (m.phrases !== false) currentTabs.push('會話');
           
           return currentTabs;
         });
@@ -3904,10 +4394,10 @@
             coEditors: [], companions: ['我', '盈瑜'], memberList: [], marquee: createDefaultMarquee(), emergencyInfo: createDefaultEmergencyInfo(), itinerary: [], expenses: [],
             expenseSettings: { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' },
             coverImage: '',
-            modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true },
-            flights: [], transports: [], accommodations: [], luggage: [], shoppingList: []
+            modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true, phrases: true },
+            flights: [], transports: [], accommodations: [], luggage: [], shoppingList: [], customPhrases: []
           };
-          setupData.value = { name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true } };
+          setupData.value = { name: '', destination: '', startDate: '', endDate: '', themeColor: '#e91e63', coEditorsStr: '', coverImage: '', modules: { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true, phrases: true } };
           isEditor.value = true; appState.value = 'TRIP'; isSetup.value = true;
           nextTick(() => {
             try {
@@ -4062,6 +4552,7 @@
             const data = docSnap.data();
             if (!data.flights) data.flights = []; if (!data.transports) data.transports = []; if (!data.accommodations) data.accommodations = []; if (!data.luggage) data.luggage = [];
             if (!data.shoppingList || !Array.isArray(data.shoppingList)) data.shoppingList = [];
+            if (!data.customPhrases || !Array.isArray(data.customPhrases)) data.customPhrases = [];
             if (!data.coEditors || !Array.isArray(data.coEditors)) data.coEditors = [];
             if (!data.memberList || !Array.isArray(data.memberList)) data.memberList = [];
             if (!data.marquee || typeof data.marquee !== 'object') data.marquee = createDefaultMarquee();
@@ -4070,13 +4561,14 @@
             if (!Array.isArray(data.emergencyInfo.qrImages)) data.emergencyInfo.qrImages = [];
             
             if (!data.expenses) data.expenses = [];
-            if (!data.modules) data.modules = { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true };
+            if (!data.modules) data.modules = { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true, phrases: true };
             else {
                if (data.modules.itinerary === undefined) data.modules.itinerary = true;
                if (data.modules.companions === undefined) data.modules.companions = true;
                if (data.modules.marquee === undefined) data.modules.marquee = true;
                if (data.modules.shopping === undefined) data.modules.shopping = true;
                if (data.modules.emergency === undefined) data.modules.emergency = true;
+               if (data.modules.phrases === undefined) data.modules.phrases = true;
             }
             if (!data.expenseSettings) { data.expenseSettings = { isPublic: false, pax: { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }, currency: 'TWD' }; } 
             else { if (!data.expenseSettings.pax) data.expenseSettings.pax = { adult: 0, elder: 0, child: 0, toddler: 0, infant: 0 }; if (data.expenseSettings.pax.elder === undefined) data.expenseSettings.pax.elder = 0; }
@@ -4138,6 +4630,7 @@
             isEditor.value = !!canEdit;
             
             appState.value = 'TRIP'; isSetup.value = false;
+            phraseLang.value = detectLanguageByDestination(tripData.value.destination);
             fetchWeatherData(tripData.value.destination);
             if (isEditor.value) bindDynamicPickers();
           } else { customAlert("找不到該行程！"); appState.value = currentUser.value ? 'DASHBOARD' : 'LOGIN'; }
@@ -4288,7 +4781,7 @@
           setupData.value = { 
              name: tripData.value.tripName, destination: tripData.value.destination, startDate: tripData.value.startDate, endDate: tripData.value.endDate, themeColor: tripData.value.themeColor, coEditorsStr: (tripData.value.coEditors || []).join(', '),
              coverImage: tripData.value.coverImage || '',
-             modules: tripData.value.modules ? { companions: true, itinerary: true, shopping: true, marquee: true, emergency: true, ...JSON.parse(JSON.stringify(tripData.value.modules)) } : { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true }
+             modules: tripData.value.modules ? { companions: true, itinerary: true, shopping: true, marquee: true, emergency: true, phrases: true, ...JSON.parse(JSON.stringify(tripData.value.modules)) } : { companions: true, itinerary: true, flights: true, transports: true, accommodations: true, luggage: true, shopping: true, expenses: true, marquee: true, emergency: true, phrases: true }
           };
           isSetup.value = true;
           nextTick(() => {
@@ -4335,6 +4828,7 @@
               tripData.value.itinerary.push({ dateStr, themeColor, items: [], transit: [], backups: [], showBackups: false }); 
             }
           }
+          phraseLang.value = detectLanguageByDestination(tripData.value.destination);
           isSetup.value = false;
         };
 
@@ -4916,6 +5410,8 @@
           showEmergencyModal, emergencyTab, addEmergencyQrUrl, handleEmergencyQrUpload, autoFillEntryCardFromTrip, autoFillEmergencyByDestination,
           showGoogleMapModal, googleMapDayIdx, googleMapMode, activeSpotIdx, activeRouteIdx, currentSpotLabel, routeFromLabel, routeToLabel, customMapInput,
           currentMapDaySpots, viewSingleSpotOnMap, viewSegmentRouteOnMap, selectMapDay, openGoogleMapModal, openGoogleMapForItem, applyCustomMapSearch, googleMapEmbedUrl, externalGoogleMapsUrl, fullDayMultiStopUrl,
+          phraseLanguages, phraseCategories, phraseLang, speechSlow, activePhraseCategory, currentLangObj, currentPhraseList,
+          activePhraseCard, speakPhrase, translateInput, translateOutput, translating, runInstantTranslate, saveTranslatedToCustom, newCustomPhrase, addCustomPhraseManual, removeCustomPhrase,
           handleTouchStart, handleTouchMove, handleTouchEnd, prevImage, nextImage,
           imgZoom, imgPanX, imgPanY, isDraggingImg, resetImgZoom, closeActiveImage, zoomInImg, zoomOutImg, toggleDoubleClickZoom, handleImageWheel, handleMouseDown, handleMouseMove, handleMouseUp,
           alertDialog, confirmDialog, customAlert, customConfirm,
