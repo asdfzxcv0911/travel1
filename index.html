@@ -3957,11 +3957,11 @@
         const getHotelsForDay = (dayNum) => tripData.value.accommodations.filter(h => { const days = calculateRelativeDays(h.dateRange); return days && dayNum >= days.start && dayNum < days.end; });
         const getTransportsForDay = (dayNum) => tripData.value.transports.filter(t => { const days = calculateRelativeDays(t.dateRange); return days && dayNum >= days.start && dayNum <= days.end; });
 
-        const expenseCategories = [
+       const expenseCategories = [
           { name: '機票', icon: '✈️', color: '#3b82f6' }, { name: '住宿', icon: '🏨', color: '#8b5cf6' },
           { name: '交通', icon: '🚅', color: '#10b981' }, { name: '餐飲', icon: '🍔', color: '#f59e0b' },
           { name: '門票', icon: '🎟️', color: '#f43f5e' }, { name: '購物', icon: '🛍️', color: '#ec4899' },
-          { name: '其他', icon: '📄', color: '#64748b' }
+          { name: '娛樂', icon: '🎡', color: '#06b6d4' }, { name: '其他', icon: '📄', color: '#64748b' }
         ];
 
         const currencyList = [
