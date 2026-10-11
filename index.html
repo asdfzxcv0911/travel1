@@ -480,7 +480,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v72</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v73</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -2837,7 +2837,11 @@
                       <input type="text" v-model="exp.name" placeholder="項目名稱 (例如：環球影城門票)" class="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-yellow-400">
                    </div>
                    <div class="flex flex-wrap items-center gap-3 mb-3 bg-white p-2 rounded-lg border border-yellow-100 shadow-sm">
-                      <div class="flex items-center gap-1.5">
+                      <label class="flex items-center gap-1.5 cursor-pointer bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded px-2.5 py-1 transition-colors">
+                         <input type="checkbox" v-model="exp.isIncluded" class="accent-yellow-500 w-3.5 h-3.5 cursor-pointer shrink-0">
+                         <span class="text-xs font-bold text-yellow-800">計入總計</span>
+                      </label>
+                      <div class="flex items-center gap-1.5 border-l border-gray-200 pl-3">
                          <span class="text-[10px] font-bold text-gray-400 uppercase">幣別</span>
                          <select v-model="exp.currency" @change="updateExchangeRate(exp)" class="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs font-bold text-gray-700 outline-none focus:border-yellow-400 cursor-pointer">
                             <option v-for="curr in currencyList" :key="curr.code" :value="curr.code">{{ curr.flag }} {{ curr.name }} ({{ curr.code }})</option>
@@ -2890,7 +2894,10 @@
                              {{ getCategoryIcon(exp.category) }}
                           </div>
                           <div class="flex-1 min-w-0">
-                             <h4 class="text-base md:text-lg font-black text-gray-800 truncate">{{ exp.name || '未命名花費' }}</h4>
+                             <h4 class="text-base md:text-lg font-black text-gray-800 truncate" :class="{'text-gray-400': exp.isIncluded === false}">
+                               {{ exp.name || '未命名花費' }}
+                               <span v-if="exp.isIncluded === false" class="ml-1 text-[10px] font-bold bg-gray-100 border border-gray-200 text-gray-400 px-1.5 py-0.5 rounded align-middle whitespace-nowrap">不計入總計</span>
+                             </h4>
                              <div class="flex flex-wrap items-center gap-1.5 mt-1">
                                 <div v-for="detail in exp.details" :key="detail.id" class="flex items-center bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 shadow-sm">
                                    <span class="text-[10px] font-bold mr-1" :class="getTypeColor(detail.type)">{{ getTypeLabel(detail.type) }}</span>
@@ -4228,14 +4235,21 @@
 
         const totalExpense = computed(() => {
           if (!tripData.value.expenses) return 0;
-          return tripData.value.expenses.reduce((sum, item) => sum + calculateExpenseItemTotalTWD(item), 0);
+          return tripData.value.expenses.reduce((sum, item) => {
+            if (item.isIncluded === false) return sum;
+            return sum + calculateExpenseItemTotalTWD(item);
+          }, 0);
         });
 
         const expenseTotalsByCategory = computed(() => {
           if (!tripData.value.expenses) return [];
           let totals = {};
           expenseCategories.forEach(c => totals[c.name] = { ...c, amount: 0 });
-          tripData.value.expenses.forEach(item => { if (totals[item.category]) totals[item.category].amount += calculateExpenseItemTotalTWD(item); });
+          tripData.value.expenses.forEach(item => { 
+            if (item.isIncluded !== false && totals[item.category]) {
+              totals[item.category].amount += calculateExpenseItemTotalTWD(item); 
+            }
+          });
           const grandTotal = totalExpense.value;
           return Object.values(totals).filter(t => t.amount > 0).sort((a,b) => b.amount - a.amount).map(t => {
             return { ...t, percentage: grandTotal > 0 ? Math.round((t.amount / grandTotal) * 100) : 0 };
@@ -4256,7 +4270,7 @@
           if (!tripData.value.expenses) tripData.value.expenses = [];
           const defaultCurrency = detectCurrencyByDestination(tripData.value.destination);
           const defaultRate = availableRates.value[defaultCurrency] || 1;
-          tripData.value.expenses.push({ id: generateId(), isLocked: false, category: '其他', name: '', memo: '', currency: defaultCurrency, exchangeRate: defaultRate, details: [{ id: generateId(), type: 'adult', price: '' }] });
+          tripData.value.expenses.push({ id: generateId(), isLocked: false, isIncluded: true, category: '其他', name: '', memo: '', currency: defaultCurrency, exchangeRate: defaultRate, details: [{ id: generateId(), type: 'adult', price: '' }] });
           nextTick(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); });
         };
         
@@ -4631,6 +4645,7 @@
                      exp.details = newDetails;
                   }
                   if (exp.currency === undefined) { exp.currency = 'TWD'; exp.exchangeRate = 1; }
+                  if (exp.isIncluded === undefined) { exp.isIncluded = true; }
                   return exp;
                });
             }
