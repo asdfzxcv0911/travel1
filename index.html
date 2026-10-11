@@ -1344,18 +1344,23 @@
                 </div>
 
                 <!-- 本日行程摘要 (總行程/唯讀模式) -->
-                <div v-if="day.items.filter(i => i.inSummary).length > 0" class="mb-4 px-3 md:px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-xl text-sm font-bold text-gray-700 leading-relaxed shadow-sm mx-1 md:mx-0">
-                  <div class="flex items-center gap-1.5 mb-1.5 text-[11px] text-blue-600 uppercase tracking-widest font-black">
-                    <span>💡</span><span>本日摘要</span>
+                <div v-if="day.items.filter(i => i.inSummary).length > 0" class="mb-4 bg-blue-50/50 border border-blue-100 rounded-xl text-sm font-bold text-gray-700 leading-relaxed shadow-sm mx-1 md:mx-0 overflow-hidden">
+                  <div @click="day.showSummary = !day.showSummary" class="flex justify-between items-center px-3 md:px-4 py-2.5 cursor-pointer hover:bg-blue-100/50 transition-colors">
+                    <div class="flex items-center gap-1.5 text-[11px] text-blue-600 uppercase tracking-widest font-black">
+                      <span>💡</span><span>本日行程</span>
+                    </div>
+                    <span class="text-blue-500 text-xs transition-transform duration-300" :class="day.showSummary ? 'rotate-180' : ''">▼</span>
                   </div>
-                  <div class="flex flex-wrap items-center gap-y-1.5">
-                    <template v-for="(sItem, sIdx) in day.items.filter(i => i.inSummary)" :key="'sum-'+sIdx">
-                      <span class="flex items-center whitespace-nowrap">
-                        <span class="mr-1 text-base">{{ sItem.category === '🔵' ? '📍' : sItem.category }}</span>
-                        <span>{{ sItem.activity || '未命名行程' }}</span>
-                      </span>
-                      <span v-if="sIdx < day.items.filter(i => i.inSummary).length - 1" class="text-blue-300 mx-1.5 font-light">➔</span>
-                    </template>
+                  <div v-show="day.showSummary" class="px-3 md:px-4 pb-3 pt-0 border-t border-blue-100/50 mt-1 animate-fade-in">
+                    <div class="flex flex-wrap items-center gap-y-1.5 mt-2">
+                      <template v-for="(sItem, sIdx) in day.items.filter(i => i.inSummary)" :key="'sum-'+sIdx">
+                        <span class="flex items-center whitespace-nowrap">
+                          <span class="mr-1 text-base">{{ sItem.category === '🔵' ? '📍' : sItem.category }}</span>
+                          <span>{{ sItem.activity || '未命名行程' }}</span>
+                        </span>
+                        <span v-if="sIdx < day.items.filter(i => i.inSummary).length - 1" class="text-blue-300 mx-1.5 font-light">➔</span>
+                      </template>
+                    </div>
                   </div>
                 </div>
 
@@ -1544,18 +1549,23 @@
             </div>
             
             <!-- 本日行程摘要 (編輯模式) -->
-            <div v-if="tripData.itinerary[activeDayTab].items.filter(i => i.inSummary).length > 0" class="mb-4 px-3 md:px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-xl text-sm font-bold text-gray-700 leading-relaxed shadow-sm">
-              <div class="flex items-center gap-1.5 mb-1.5 text-[11px] text-blue-600 uppercase tracking-widest font-black">
-                <span>💡</span><span>本日摘要</span>
+            <div v-if="tripData.itinerary[activeDayTab].items.filter(i => i.inSummary).length > 0" class="mb-4 bg-blue-50/50 border border-blue-100 rounded-xl text-sm font-bold text-gray-700 leading-relaxed shadow-sm overflow-hidden">
+              <div @click="tripData.itinerary[activeDayTab].showSummary = !tripData.itinerary[activeDayTab].showSummary" class="flex justify-between items-center px-3 md:px-4 py-2.5 cursor-pointer hover:bg-blue-100/50 transition-colors">
+                <div class="flex items-center gap-1.5 text-[11px] text-blue-600 uppercase tracking-widest font-black">
+                  <span>💡</span><span>本日行程</span>
+                </div>
+                <span class="text-blue-500 text-xs transition-transform duration-300" :class="tripData.itinerary[activeDayTab].showSummary ? 'rotate-180' : ''">▼</span>
               </div>
-              <div class="flex flex-wrap items-center gap-y-1.5">
-                <template v-for="(sItem, sIdx) in tripData.itinerary[activeDayTab].items.filter(i => i.inSummary)" :key="'sum-edit-'+sIdx">
-                  <span class="flex items-center whitespace-nowrap">
-                    <span class="mr-1 text-base">{{ sItem.category === '🔵' ? '📍' : sItem.category }}</span>
-                    <span>{{ sItem.activity || '未命名行程' }}</span>
-                  </span>
-                  <span v-if="sIdx < tripData.itinerary[activeDayTab].items.filter(i => i.inSummary).length - 1" class="text-blue-300 mx-1.5 font-light">➔</span>
-                </template>
+              <div v-show="tripData.itinerary[activeDayTab].showSummary" class="px-3 md:px-4 pb-3 pt-0 border-t border-blue-100/50 mt-1 animate-fade-in">
+                <div class="flex flex-wrap items-center gap-y-1.5 mt-2">
+                  <template v-for="(sItem, sIdx) in tripData.itinerary[activeDayTab].items.filter(i => i.inSummary)" :key="'sum-edit-'+sIdx">
+                    <span class="flex items-center whitespace-nowrap">
+                      <span class="mr-1 text-base">{{ sItem.category === '🔵' ? '📍' : sItem.category }}</span>
+                      <span>{{ sItem.activity || '未命名行程' }}</span>
+                    </span>
+                    <span v-if="sIdx < tripData.itinerary[activeDayTab].items.filter(i => i.inSummary).length - 1" class="text-blue-300 mx-1.5 font-light">➔</span>
+                  </template>
+                </div>
               </div>
             </div>
 
