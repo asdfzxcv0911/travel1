@@ -480,7 +480,7 @@
              <!-- 補回唯讀模式提示標籤 -->
              <span v-if="!isEditor" class="bg-blue-900/50 text-blue-300 border border-blue-800 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shadow-sm">👁 唯讀預覽中</span>
              
-             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v73</span>
+             <span v-if="isEditor" class="text-[10px] md:text-xs font-bold text-gray-400 hidden sm:inline mr-1">版本: v74</span>
              <span v-if="isEditor" class="text-[10px] md:text-xs font-bold hidden sm:inline mr-1" :class="saveStatus.includes('正在') ? 'animate-pulse text-yellow-400' : 'text-green-400'">{{ saveStatus }}</span>
           </div>
           
@@ -837,8 +837,8 @@
               <div class="rounded-lg overflow-hidden border border-black/10 py-1.5 flex items-center"
                    :style="{ backgroundColor: tripData.marquee.bgColor, color: tripData.marquee.textColor }">
                 <div class="marquee-track font-bold text-xs" :style="{ animationDuration: (tripData.marquee.speed || 18) + 's' }">
-                  <span class="mx-6">{{ activeMarqueeText || '📢 這是跑馬燈預覽文字，設定好時段後就會在指定時間自動播放！' }}</span>
-                  <span class="mx-6">{{ activeMarqueeText || '📢 這是跑馬燈預覽文字，設定好時段後就會在指定時間自動播放！' }}</span>
+                  <span class="mx-6">{{ previewMarqueeText || '📢 這是跑馬燈預覽文字，打字後會立刻在這裡預覽！' }}</span>
+                  <span class="mx-6">{{ previewMarqueeText || '📢 這是跑馬燈預覽文字，打字後會立刻在這裡預覽！' }}</span>
                 </div>
               </div>
             </div>
@@ -3890,6 +3890,14 @@
           return activeItems.map(i => i.text.trim()).join('   ✦   ');
         });
 
+        const previewMarqueeText = computed(() => {
+          const m = tripData.value.marquee;
+          if (!m || !Array.isArray(m.items)) return '';
+          // 預覽專用：無視時間，只要有啟用且有打字，就立刻串接顯示出來
+          const previewItems = m.items.filter(item => item.enabled && item.text && item.text.trim());
+          return previewItems.map(i => i.text.trim()).join('   ✦   ');
+        });
+
         const addMarqueeItem = () => {
           if (!tripData.value.marquee) tripData.value.marquee = createDefaultMarquee();
           if (!Array.isArray(tripData.value.marquee.items)) tripData.value.marquee.items = [];
@@ -5467,7 +5475,7 @@
           saveStatus, shareStatus, tabs, visibleTabs, currentView, activeDayTab, tripData, formatDateRange, tripCountdownBadge, activeMemo, activeImage, shareDialog, copyToClipboard, exportToText, exportTripJson, importTripJson, switchTab,
           currentWeather, forecast, weatherLoading, showWeatherModal,
           showCompanionModal, companionSummaryText, addMember, removeMember,
-          showMarqueeModal, activeMarqueeText, isMarqueeItemActive, addMarqueeItem, removeMarqueeItem, applyMarqueePreset, setMarqueeDateToday, setMarqueeDateTrip,
+          showMarqueeModal, activeMarqueeText, previewMarqueeText, isMarqueeItemActive, addMarqueeItem, removeMarqueeItem, applyMarqueePreset, setMarqueeDateToday, setMarqueeDateTrip,
           showEmergencyModal, emergencyTab, addEmergencyQrUrl, handleEmergencyQrUpload, autoFillEntryCardFromTrip, autoFillEmergencyByDestination,
           showGoogleMapModal, googleMapDayIdx, googleMapMode, activeSpotIdx, activeRouteIdx, currentSpotLabel, routeFromLabel, routeToLabel, customMapInput,
           currentMapDaySpots, viewSingleSpotOnMap, viewSegmentRouteOnMap, selectMapDay, openGoogleMapModal, openGoogleMapForItem, applyCustomMapSearch, googleMapEmbedUrl, externalGoogleMapsUrl, fullDayMultiStopUrl,
